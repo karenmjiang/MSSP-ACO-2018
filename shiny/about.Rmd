@@ -1,0 +1,42 @@
+---
+title: "About"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Project Background
+
+In 2018, the National Health Expenditure accounted for 17.7% of GDP, which equates $3.6 trillion, or $11,172.00 per person. In order to control healthcare costs, the Center for Medicare and Medicaid Services (CMS) is shifting towards value-based payment systems through the Medicare Shared Saving Program (MSSP). Accountable Care Organizations (ACOs) represent one voluntary and emergent payment structure under MSSP.
+           
+Medicare traditionally paid providers and hospitals through a Fee For Service (FFS) payment system. That is, payments are made to providers and hospitals for each service provided. This creates the incentive to provide as many services as possible for patients. This has led to overutilization and increased costs for the health system and duplicative services and poor coordination of care for patients.
+       
+ACOs attempt to remedy some of these issues.
+
+An ACO is a group of hospitals, physicians, other providers who come together voluntarily to provide better coordinated care for their Medicare Patients and limit unncessary spending. ACOs engage in financial risk, by accepting a capitated payment per patient per month. If the spending for care is less than the alloted amount, the ACO is able to keep the difference. However, if spending exceeds the amount, the ACO must pay back the difference to CMS.
+
+In order to prevent skimping on care for patients, ACOs must also provide outcome data in order to be eligible for savings.
+
+## Data Sources
+
+[2018 Number of ACO Assigned Beneficiares]("https://data.cms.gov/Special-Programs-Initiatives-Medicare-Shared-Savin/2018-Number-of-ACO-Assigned-Beneficiaries-by-Count/qu23-5j39")
+
+Assigned beneficiary person-year counts are based on certified ACO Participant Lists for the performance year (PY) 2018 and based on the assignment methodology and definition of dual eligible beneficiaries in effect for that performance year.
+
+[2018 County Level FFS Data]("https://data.cms.gov/Special-Programs-Initiatives-Medicare-Shared-Savin/2018-County-level-FFS-Data-for-Shared-Savings-Prog/sju4-8k6c")
+
+Aggregate data consisting of per capita Parts A and B FFS expenditures, average CMS-HCC prospective risk scores and total person-years for assignable beneficiaries by Medicare enrollment type (End Stage Renal Disease (ESRD), disabled, aged/dual eligible, aged/non-dual eligible). It is the intent of CM to publish this PUF annually, in the summer following the conclusion of the calendar year to which it relates.
+
+[2018 Shared Savings Program Accountable Care Organization]("https://data.cms.gov/Special-Programs-Initiatives-Medicare-Shared-Savin/2018-Shared-Savings-Program-SSP-Accountable-Care-O/v47u-yq84")
+
+2018 SSP ACO PUF - To address the increasing number of requests for SSP ACO data, the Centers for Medicare (CM) has created a standard analytical file that CMS can use to efficiently satisfy these requests. It is the intent of CM to publish the ACO-level public-use file (PUF) that contains ACO-specific metrics as well as summarized beneficiary and provider information for each performance year of the SSP program.
+
+## About Me
+
+My name is Karen Jiang. I am an MPH Candidate in Health Policy at Harvard T. H. Chan School of Public Health.
+
+You can reach me at karenjiang@hsph.harvard.edu. 
+
+

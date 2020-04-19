@@ -1,0 +1,48 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(ggplot2)
+
+aco <- readRDS(file = "data/aco.RDS")
+county <- readRDS(file = "data/county.RDS")
+```
+
+## What is an Accountable Care Organization (ACO)?
+
+Once upon a time in 2006... 
+
+A man named Dr. Elliot Fisher first uttered into existence "Accountable Care Organization" during a meeting with the Medicare Payment Advisory Committee ([MedPAC](http://www.medpac.gov/)) in reference to a new payment arrangement where all providers share accountability for the continuum a patient's care. 
+
+An Accountable Care Organization is a groups of doctors, hospitals, and other health care providers who agree to be paid under a reimbursement system that aims to incentivize high-quality coordinated care for Medicare Patients. 
+
+Kaiser Health News has a 3-minute informative introduction to ACOs: 
+
+<iframe src='https://players.brightcove.net/1875348214/Sy7mrdF0_default/index.html?videoId=4441613712001&cms:wordpress:5.4:1.6.1:iframe' allowfullscreen frameborder=0></iframe>
+
+
+### Why ACOs?
+
+There are two main problems facing the US health care system. 
+
+1. Cost
+2. Quality
+
+Compared to OECD countries, the US spends **16.9% of GDP** on health (more than double OECD average), and yet has had **declining life expectancy** for the past 3 years. 
+
+#### Back in the day...
+Medicare traditionally paid providers and hospitals through a **Fee For Service** (FFS) payment system. That is, payments are made to providers and hospitals for each service provided.
+
+This creates an incentive to prioritize the *quantity* of services over the *quality* of services. As a result, we see duplicative services and poor coordination of care for patients, which ultimately lead to poor outcomes.
+
+### How are ACOs doing so far?
+
+In 2015, Medicare estabished the Med
+
+
+## How are we doing so far?
+

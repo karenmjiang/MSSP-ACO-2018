@@ -1,0 +1,109 @@
+---
+title: "Results"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(ggplot2)
+
+aco <- readRDS(file = "data/aco.RDS")
+county <- readRDS(file = "data/county.RDS")
+```
+
+## of ACOs
+
+In 2018, there were a total of `r nrow(aco)` ACOs. While 123 new ACOs joined that year, only a handful of ACOs have persisted since the beginning. 
+
+```{r}
+aco %>% 
+  group_by(Initial_Start_Year) %>%
+  count %>%
+  ggplot(aes(x = Initial_Start_Year, y = n)) +
+  geom_col(aes(fill = n)) +
+  geom_label(aes(label = n), show.legend = FALSE, vjust = -.2) + 
+  scale_y_continuous(limits = c(0, 130)) + 
+  theme_classic() +
+  theme(
+    axis.ticks = element_blank(),
+    axis.line = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title = element_blank(),
+    legend.position = "none"
+  ) +
+  labs(
+    title = "The Initial Start Year for ACOs in 2018"
+  ) 
+```
+
+
+
+These ACOs served `r sum(aco$N_AB)` patients / beneficiaries in a single year. 
+`r sum(aco$N_total_providers)` providers, including primary care physicians (PCPs), specialists, nurse practitioners, physician assistants, clinical nurse specialists participated in the performance year.
+  
+## Tracks
+
+There are 4 available Tracks. 
+
+```{r}
+aco %>% 
+  count(current) %>%
+  ggplot(aes(current, n)) +
+  geom_col()
+```
+
+
+## Savings or Losses
+
+In order to be eligible for savings or penalized for losses, all ACOs have a **Minimum Savings Rate (MSR)** or **Minimum Loss Rate (MLR)**
+
+```{r}
+aco %>%
+  count(GenSaveLoss_categorical) %>%
+  ggplot(aes(x = GenSaveLoss_categorical, y = n)) +
+  geom_col() +
+  geom_text(aes(label = n), show.legend = FALSE, vjust = -1) + 
+  scale_y_continuous(limits = c(0, 280)) + 
+  theme_classic() +
+  theme(
+    axis.ticks = element_blank(),
+    axis.line = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title = element_blank(),
+    legend.position = "none"
+  ) +
+  labs(
+    title = " "
+  ) 
+
+```
+
+## Graph about $ amounts in savings and losses
+
+
+## Experience and results
+* Can you create an option to toggle between stack and fill?
+
+```{r}
+aco %>% 
+  group_by(Initial_Start_Year, GenSaveLoss_categorical) %>%
+  count %>%
+  ggplot(aes(x = Initial_Start_Year, y = n)) +
+  geom_col(aes(fill = GenSaveLoss_categorical), position = "fill") +
+  theme_classic() +
+  theme(
+    axis.ticks = element_blank(),
+    axis.line = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title = element_blank(),
+    legend.position = "bottom"
+  ) +
+  labs(
+    title = "The Initial Start Year for ACOs in 2018",
+    fill = "Results"
+  ) 
+```
+
+
