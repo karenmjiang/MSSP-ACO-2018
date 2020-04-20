@@ -1,67 +1,380 @@
 ---
-title: ""
+title: "Accountable Care Organizations"
 output: 
-  flexdashboard::flex_dashboard:
-    orientation: rows
+  flexdashboard::flex_dashboard
+runtime: shiny
 ---
 
-Row 
+```{r global, include=FALSE}
+# load data in 'global' chunk so it can be shared by all users of the dashboard
+
+library(tidyverse)
+library(ggplot2)
+library(flexdashboard)
+library(usmap)
+
+aco <- readRDS("clean_data/aco.RDS")
+county <- readRDS("clean_data/county.RDS")
+system <- read_csv("shiny/data/healthsystemdata.csv")
+
+```
+
+Intro  {data-orientation=rows}
+===================================== 
+    
+Value Box Rows
 ------------------------------------------------
 
 ### Total Number of Participating ACOs in 2018
 
 ```{r}
-
+num_acos <- length(unique(aco$ACO_ID))
+valueBox(num_acos, icon = "fa-hashtag")
 ```
 
 ### Number of New ACOs
 
 ```{r}
+num_new <- aco %>%
+  filter(Initial_Start_Year == 2018) %>%
+  nrow()
 
+valueBox(num_new, icon = "fa-user-plus")
 ```
 
 ### Total Number of Participating Providers 
 
 ```{r}
-
-
+num_providers <- sum(aco$N_total_providers)
+valueBox(prettyNum(num_providers, big.mark = ","), 
+         icon = "fa-user-md")
 ```
 
 ### Total Number of Medicare Beneficiaries 
 
 ```{r}
-
+num_beneficiaries <- sum(aco$N_AB)
+valueBox(prettyNum(num_beneficiaries, big.mark = ","), 
+         icon = "fa-user-friends")
 ```
 
 
-Row {.tabset .tabset-fade}
+
+
+Description Row {.tabset .tabset-fade}
 ------------------------------------------------
 
 ### What are Accountable Care Organizations?
 
-```{r}
+#### Origins
 
-```
+In 2008, Dr. Elliot Fisher introduced the concept of an "Accountable Care Organization" during a meeting with the Medicare Payment Advisory Committee ([MedPAC](http://www.medpac.gov/)) in reference to a new **payment arrangement** where all providers share accountability for the continuum a patient's care. 
+
+An Accountable Care Organization is a groups of doctors, hospitals, and other health care providers who agree to be paid under a reimbursement system that aims to incentivize **high-quality coordinated care** for Medicare Patients. 
+
+#### Video 
+
+Kaiser Health News has a 3-minute informative introduction to ACOs: 
+
+<p align="center"><iframe src='https://players.brightcove.net/1875348214/Sy7mrdF0_default/index.html?videoId=4441613712001&cms:wordpress:5.4:1.6.1:iframe' allowfullscreen frameborder=0; width=600px; height = 500px></iframe></p>
 
 
-### Why ACOs?
 
-```{r}
-library(d3heatmap)
-d3heatmap(mtcars, scale="column", colors="Blues")
-```
 
-*** 
+### Why ACOs? {data-commentary-width=100}
 
-https://github.com/rstudio/d3heatmap/
+#### The Problem
 
-- Highlight rows/columns by clicking axis labels
+There are two main problems facing the US health care system. 
 
-- Click and drag over colormap to zoom in (click on colormap to zoom out)
+1. **Cost**: We spend *significantly* more on healthcare than all other countries
+2. **Quality**: And yet, we've seen a decline in life expectancy for the past 3 years
 
-- Optional clustering and dendrograms, courtesy of base::heatmap
+Medicare traditionally paid providers and hospitals through a **Fee For Service** (FFS) payment system. That is, payments are made to providers and hospitals for each service provided.
+
+This creates an incentive to prioritize the *quantity* of services over the *quality* of services. As a result, we see duplicative services and poor coordination of care for patients, which ultimately lead to poor outcomes.
+
+
 
 
 ### How do they work?
 
-To simplify the process...
+The following is a very pared down version of how ACOs
+
+#### ACOs are responsible for:
+
+- declaring which financial Track they would like to pursue.
+  - ACOs in **Track 1** participate in one-sided risk (shared savings only)
+  - ACOs in **Tracks 1+, 2, and 3** participate in two-sided risk (shared savings and shared losses).
+- Providers see patients and send **claims** and bill CMS as they usually would Medicare beneficiaries
+- Providing data on **quality measurements** to ensure they are eligible to share in any earned savings and avoid shared losses at the maximum level
+
+#### CMS is reponsible for:
+
+- assigning **beneficiaries** to the ACO by attributing beneficiaries to the providers from whom they receive the majority of their care.
+- determine a **benchmark** based on prior expenditures, which sets a target for ACOs to limit their spending
+- determining the **Minimum Loss Ratio** (MLR) / **Minimum Savings Ratio** (MSR) depending on the declared financial Track.
+- processing **claims** data to determine total expenditures
+- reconciling the difference between expenditures and the benchmark to determine whether or not savings or losses were incurred.
+
+> For more information, you can read about the full process from CMS's [MSSP Methodology](https://www.cms.gov/Medicare/Medicare-Fee-for-Service-Payment/sharedsavingsprogram/Downloads/Shared-Savings-Losses-Assignment-Spec-V7.pdf)
+
+
+
+
+Results {.storyboard}
+=====================================     
+
+### Chart 1
+    
+```{r}
+```
+
+***
+
+* Commentary 
+* Additional Thoughts
+    
+### Chart 2
+
+```{r}
+```
+
+   
+
+
+
+Patients {data-navmenu="Models"}
+=====================================   
+
+```{r}
+
+```
+
+
+
+
+Providers {data-navmenu="Models"}
+=====================================   
+
+```{r}
+
+```
+
+
+
+
+
+Quality Outcomes {data-navmenu="Models"}
+=====================================   
+
+```{r}
+
+```
+
+
+   
+
+Country {data-navmenu="County Maps"}
+=====================================   
+
+
+Input {.sidebar}
+-------------------------------------
+
+**Maps may take up to 20 seconds to load**
+
+```{r}
+selectInput(inputId = "beneficiary_2",
+            label = "Beneficiary Type",
+            choices = county$Beneficiary)
+```
+
+* **End Stage Renal Disease** represents some of the most expensive patients
+* **Disabled** are may be under 65 with disabilities
+* **Aged Dual** are 65 and older and are enrolled in both Medicaid and Medicare
+* **Aged Non Dual** are 65 and older and only enrolled in Medicare
+
+
+```{r}
+selectInput(inputId = "category_2",
+            label = "Category",
+            choices = county$Category)
+```
+
+* **Per Capita Expenditures** is the average amount per person
+* **Average HCC Risk Score**
+* **Person Years** represents the average amount of time enrollees spent in 
+
+
+Output 
+-------------------------------------
+
+### United States Map
+
+
+```{r}
+
+renderPlot({
+  c <- county %>% 
+    filter(Beneficiary == input$beneficiary_2,
+           Category == input$category_2)
+  
+  plot_usmap(data = c,
+             regions = "counties",
+             values = "Values",
+             color = "white") +
+    scale_fill_continuous(low = "#DFF0EA", high = "#2A7886") +
+    theme(legend.position = "bottom",
+          legend.direction = "horizontal")
+  
+})
+
+```
+
+> Data is aggregated at a county level. This map is meant to show a distribution of patient characteristics nationwide by county.
+
+
+Summary 
+-------------------------------------
+
+### Beneficiary Summary
+
+```{r}
+
+renderPlot({
+  county %>%
+    group_by(Beneficiary, Category) %>%
+    summarize(Values = sum(Values)) %>%
+    filter(Category == input$category_2) %>%
+    ggplot(aes(x = Beneficiary, y = Values)) +
+    geom_col() + 
+    scale_y_continuous(labels = scales::comma) +
+    coord_flip() + 
+    theme_minimal() +
+    theme(
+      axis.title = element_blank()
+    )
+})
+```
+
+### Category Summary
+
+```{r}
+renderPlot({
+county %>%
+  group_by(Beneficiary, Category) %>%
+  summarize(Values = sum(Values)) %>%
+  filter(Beneficiary == input$beneficiary_2) %>%
+  ggplot(aes(x = Category, y = Values)) +
+  geom_col() + 
+  scale_y_continuous(labels = scales::comma) +
+  coord_flip() + 
+  theme_minimal() +
+  theme(
+    axis.title = element_blank()
+  )})
+```
+
+
+
+States {data-navmenu="County Maps"}
+=====================================   
+
+**Maps may take up to 20 seconds to load**
+
+
+Input {.sidebar}
+-------------------------------------
+
+```{r}
+selectInput(inputId = "state",
+            label = "State",
+            choices = county$state_name)
+                               
+selectInput(inputId = "beneficiary",
+            label = "Beneficiary Type",
+            choices = county$Beneficiary)
+                               
+selectInput(inputId = "category",
+            label = "Category",
+            choices = county$Category)
+```
+
+
+Output 
+-------------------------------------
+
+### State Maps
+
+```{r}
+renderPlot({
+  d <- county %>%
+    filter(Beneficiary == input$beneficiary,
+           Category == input$category) 
+  
+  plot_usmap(data = d,
+             regions = "counties",
+             include = input$state,
+             values = "Values",
+             color = "white") +
+    scale_fill_continuous(low = "#DFF0EA", high = "#2A7886") +
+    theme(legend.position = "bottom",
+          legend.direction = "horizontal") + 
+    labs(
+      title = paste(input$beneficiary, "Beneficiaries in ", input$state),
+      subtitle = paste("by ", input$category),
+      fill = paste("Count of ", input$category)
+    )
+})
+```
+
+> Data is aggregated at a county level. This map is meant to show a distribution of patient characteristics in each state by county.
+
+Summary 
+-------------------------------------
+
+### Beneficiary Summary
+
+```{r}
+
+renderPlot({
+  county %>%
+    group_by(Beneficiary, Category, State) %>%
+    summarize(Values = sum(Values)) %>%
+    filter(Category == input$category,
+           State == input$state) %>%
+    ggplot(aes(x = Beneficiary, y = Values)) +
+    geom_col() + 
+    scale_y_continuous(labels = scales::comma) +
+    coord_flip() + 
+    theme_minimal() +
+    theme(
+      axis.title = element_blank()
+    )
+})
+```
+
+### Category Summary
+
+```{r}
+renderPlot({
+county %>%
+  group_by(Beneficiary, Category, State) %>%
+  summarize(Values = sum(Values)) %>%
+  filter(Beneficiary == input$beneficiary,
+         State == input$state) %>%
+  ggplot(aes(x = Category, y = Values)) +
+  geom_col() + 
+  scale_y_continuous(labels = scales::comma) +
+  coord_flip() + 
+  theme_minimal() +
+  theme(
+    axis.title = element_blank()
+  )})
+```
+
+About
+=====================================   
+
+

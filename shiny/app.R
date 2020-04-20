@@ -16,28 +16,20 @@ ui <- navbarPage(
     
     
     tabPanel("Intro",
-             fluidRow(
-                 includeHTML("intro.html")
-             )
+            includeHTML("intro.html")
     ),
     
     
     # Results -----------------------------------------------------------------
     
     tabPanel("Results",
-             fluidRow(
-                 includeHTML("results.html")
-             )
-             
+            includeHTML("results.html")
     ),
     
     # Model -----------------------------------------------------------------
     
     tabPanel("Model",
-             fluidRow(
-                 includeHTML("model.html")
-             )
-             
+            includeHTML("model.html")
     ),
     
     
