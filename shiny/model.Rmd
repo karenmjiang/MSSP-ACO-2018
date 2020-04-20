@@ -1,0 +1,134 @@
+---
+title: "Models"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(ggplot2)
+library(plotly)
+library(broom)
+library(gt)
+
+aco <- readRDS(file = "data/aco.RDS")
+county <- readRDS(file = "data/county.RDS")
+```
+
+Column
+-------------------------------------
+
+### Linear Regression Table
+
+```{r}
+aco %>%
+  mutate(
+    Initial_Start_Year = as.numeric(Initial_Start_Year)
+    ) %>%
+  lm(GenSaveLoss ~ Initial_Start_Year, .) %>%
+  tidy(conf.int = TRUE) %>%
+  select(term, estimate, conf.low, conf.high) %>%
+  gt() %>%
+  tab_header(
+    title = "Linear Regression of Initial Start Year on Generated Savings / Losses"
+  ) %>%
+  cols_label(
+    term = "Variable",
+    estimate = "Estimate",
+    conf.low = "Lower Bound",
+    conf.high = "Upper Bound"
+  )
+```
+
+***
+
+* ACOs who started in 2012 report an average of $7,653,639 in savings on average.
+
+* The average savings for ACOs who started each subsequent year decreases by $1,059,183.
+
+
+### Another Linear Regression Table
+
+```{r}
+
+```
+
+
+
+Column {.tabset}
+-------------------------------------
+
+### Starting Year and Generated Savings / Losses
+
+```{r}
+
+
+year_results <- aco %>%
+  ggplot(aes(x = as.Date(Initial_Start_Year, format = "%Y"), y = GenSaveLoss)) +
+  geom_jitter(aes(color = GenSaveLoss_categorical), alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", size = 0.5) +
+  scale_y_continuous(labels = scales::comma) + 
+  theme_classic() +
+  theme(
+    axis.line = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid.major.y = element_line(colour = "lightgray", linetype = "dotted"),
+    panel.grid.minor.y = element_line(colour = "lightgray", linetype = "dotted"),
+    legend.position = "top"
+  ) +
+  labs(
+    x = "Initial Start Year",
+    y = "Generated $",
+    color = "Category"
+  )
+
+year_results
+
+```
+
+### Breakdown of Ages 
+
+```{r}
+
+test <- aco %>%
+  select(ACO_ID, GenSaveLoss, GenSaveLoss_categorical, starts_with("perc_Age")) %>%
+  pivot_longer(cols = starts_with("perc_Age"),
+               names_to = "Age",
+               values_to = "Percent",
+               names_prefix = "perc_Age_") %>%
+  mutate(Age = case_when(Age == "0_64" ~ "0 to 64",
+                         Age == "65_74" ~ "64 to 74",
+                         Age == "75_84" ~ "75 to 84",
+                         Age == "85plus" ~ "85 and up"))
+       
+test %>%
+  group_by(GenSaveLoss_categorical, Age) %>%
+  summarize(average = mean(Percent)) %>%
+  ggplot(aes(x = GenSaveLoss_categorical, y = average)) +
+  geom_col(aes(fill = Age), position = "stack", width = 0.6) +
+  coord_flip() +
+  theme_minimal() +
+  theme(
+    axis.title = element_blank(),
+    axis.line.x = element_blank()
+  )
+
+```
+
+
+### Chart B
+
+```{r}
+
+```
+
+
+### Chart C
+
+```{r}
+
+```
+

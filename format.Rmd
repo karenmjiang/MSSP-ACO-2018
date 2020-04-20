@@ -1,0 +1,67 @@
+---
+title: ""
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+---
+
+Row 
+------------------------------------------------
+
+### Total Number of Participating ACOs in 2018
+
+```{r}
+
+```
+
+### Number of New ACOs
+
+```{r}
+
+```
+
+### Total Number of Participating Providers 
+
+```{r}
+
+
+```
+
+### Total Number of Medicare Beneficiaries 
+
+```{r}
+
+```
+
+
+Row {.tabset .tabset-fade}
+------------------------------------------------
+
+### What are Accountable Care Organizations?
+
+```{r}
+
+```
+
+
+### Why ACOs?
+
+```{r}
+library(d3heatmap)
+d3heatmap(mtcars, scale="column", colors="Blues")
+```
+
+*** 
+
+https://github.com/rstudio/d3heatmap/
+
+- Highlight rows/columns by clicking axis labels
+
+- Click and drag over colormap to zoom in (click on colormap to zoom out)
+
+- Optional clustering and dendrograms, courtesy of base::heatmap
+
+
+### How do they work?
+
+To simplify the process...
