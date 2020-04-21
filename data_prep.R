@@ -175,7 +175,7 @@ county <-
   ) %>%
   
   mutate(
-    Values = as.numeric(Values)
+    Values = as.numeric(as.character(Values))
   ) %>%
   
   # Re-order column names

@@ -15,7 +15,6 @@ library(usmap)
 
 aco <- readRDS("clean_data/aco.RDS")
 county <- readRDS("clean_data/county.RDS")
-system <- read_csv("shiny/data/healthsystemdata.csv")
 
 ```
 
@@ -27,14 +26,14 @@ Value Box Rows
 
 ### Total Number of Participating ACOs in 2018
 
-```{r}
+```{r value_totalaco}
 num_acos <- length(unique(aco$ACO_ID))
 valueBox(num_acos, icon = "fa-hashtag")
 ```
 
 ### Number of New ACOs
 
-```{r}
+```{r value_newaco}
 num_new <- aco %>%
   filter(Initial_Start_Year == 2018) %>%
   nrow()
@@ -44,7 +43,7 @@ valueBox(num_new, icon = "fa-user-plus")
 
 ### Total Number of Participating Providers 
 
-```{r}
+```{r value_numproviders}
 num_providers <- sum(aco$N_total_providers)
 valueBox(prettyNum(num_providers, big.mark = ","), 
          icon = "fa-user-md")
@@ -52,7 +51,7 @@ valueBox(prettyNum(num_providers, big.mark = ","),
 
 ### Total Number of Medicare Beneficiaries 
 
-```{r}
+```{r value_numbeneficiaries}
 num_beneficiaries <- sum(aco$N_AB)
 valueBox(prettyNum(num_beneficiaries, big.mark = ","), 
          icon = "fa-user-friends")
@@ -125,7 +124,7 @@ The following is a very pared down version of how ACOs
 Results {.storyboard}
 =====================================     
 
-### Chart 1
+### ACOs that started earlier are more successful
     
 ```{r}
 ```
@@ -175,7 +174,7 @@ Quality Outcomes {data-navmenu="Models"}
 
    
 
-Country {data-navmenu="County Maps"}
+Country {data-navmenu="Maps"}
 =====================================   
 
 
@@ -190,40 +189,31 @@ selectInput(inputId = "beneficiary_2",
             choices = county$Beneficiary)
 ```
 
-* **End Stage Renal Disease** represents some of the most expensive patients
-* **Disabled** are may be under 65 with disabilities
+* **End Stage Renal Disease** may be under 65, provision created by Social Security Act 
+* **Disabled** may be under 65 with qualifying disabilities
 * **Aged Dual** are 65 and older and are enrolled in both Medicaid and Medicare
 * **Aged Non Dual** are 65 and older and only enrolled in Medicare
 
 
-```{r}
-selectInput(inputId = "category_2",
-            label = "Category",
-            choices = county$Category)
-```
-
-* **Per Capita Expenditures** is the average amount per person
-* **Average HCC Risk Score**
-* **Person Years** represents the average amount of time enrollees spent in 
-
-
-Output 
+Output {.tabset}
 -------------------------------------
 
-### United States Map
+### Person Years
 
+Person Years are a more precise way of measuring the amount of people in Medicare provides services to each year by counting people proportional to the time they are in the Medicare program. For example, someone who turns 65 in March would contribute 3/4ths of a person-year.
 
-```{r}
+```{r map_personyear}
 
 renderPlot({
   c <- county %>% 
     filter(Beneficiary == input$beneficiary_2,
-           Category == input$category_2)
+           Category == "Person Years")
   
   plot_usmap(data = c,
              regions = "counties",
              values = "Values",
-             color = "white") +
+             color = "white",
+             selected = "Aged Non-Dual") +
     scale_fill_continuous(low = "#DFF0EA", high = "#2A7886") +
     theme(legend.position = "bottom",
           legend.direction = "horizontal")
@@ -235,7 +225,58 @@ renderPlot({
 > Data is aggregated at a county level. This map is meant to show a distribution of patient characteristics nationwide by county.
 
 
-Summary 
+### Risk Adjustment 
+
+Risk Adjustment Factors are calculated to modify patients for higher degrees of illness, based on patient demographics and Hierarchical Condition Categories (HCC). Risk adjustment scores are normalized around 1.0, and range from around 0.9 to 1.7. These are then multiplied to a dollar amount to set the expected expenditure and capitation for that individual. 
+
+```{r map_riskadjust}
+
+renderPlot({
+  c <- county %>% 
+    filter(Beneficiary == input$beneficiary_2,
+           Category == "Average HCC Risk Score")
+  
+  plot_usmap(data = c,
+             regions = "counties",
+             values = "Values",
+             color = "white",
+             selected = "Aged Non-Dual") +
+    scale_fill_continuous(low = "#DFF0EA", high = "#2A7886") +
+    theme(legend.position = "bottom",
+          legend.direction = "horizontal")
+  
+})
+
+```
+
+
+
+### Per Capita Expenditures
+
+
+
+```{r map_expenditure}
+
+renderPlot({
+  c <- county %>% 
+    filter(Beneficiary == input$beneficiary_2,
+           Category == "Per Capita Expenditures")
+  
+  plot_usmap(data = c,
+             regions = "counties",
+             values = "Values",
+             color = "white",
+             selected = "Aged Non-Dual") +
+    scale_fill_continuous(low = "#DFF0EA", high = "#2A7886") +
+    theme(legend.position = "bottom",
+          legend.direction = "horizontal")
+  
+})
+
+```
+
+
+Summary {data-width=250}
 -------------------------------------
 
 ### Beneficiary Summary
@@ -245,10 +286,11 @@ Summary
 renderPlot({
   county %>%
     group_by(Beneficiary, Category) %>%
-    summarize(Values = sum(Values)) %>%
-    filter(Category == input$category_2) %>%
+    summarize(Values = mean(Values, na.rm = TRUE)) %>%
+    filter(Category == "Per Capita Expenditures") %>%
+    # filter(Category == input$category_2) %>%
     ggplot(aes(x = Beneficiary, y = Values)) +
-    geom_col() + 
+    geom_col(aes(width = 0.7)) + 
     scale_y_continuous(labels = scales::comma) +
     coord_flip() + 
     theme_minimal() +
@@ -258,30 +300,30 @@ renderPlot({
 })
 ```
 
-### Category Summary
+### Person Year 
 
-```{r}
-renderPlot({
-county %>%
-  group_by(Beneficiary, Category) %>%
-  summarize(Values = sum(Values)) %>%
-  filter(Beneficiary == input$beneficiary_2) %>%
-  ggplot(aes(x = Category, y = Values)) +
-  geom_col() + 
-  scale_y_continuous(labels = scales::comma) +
-  coord_flip() + 
-  theme_minimal() +
-  theme(
-    axis.title = element_blank()
-  )})
+```{r value_personyear}
+
+```
+
+
+### Average HCC Risk Score 
+
+```{r value_riskscore}
+
+```
+
+
+### Per Capita Expenditure
+
+```{r value_expenditure}
+
 ```
 
 
 
-States {data-navmenu="County Maps"}
+States {data-navmenu="Maps"}
 =====================================   
-
-**Maps may take up to 20 seconds to load**
 
 
 Input {.sidebar}
@@ -291,11 +333,20 @@ Input {.sidebar}
 selectInput(inputId = "state",
             label = "State",
             choices = county$state_name)
-                               
+```
+
+```{r}
 selectInput(inputId = "beneficiary",
             label = "Beneficiary Type",
             choices = county$Beneficiary)
-                               
+```
+
+* **End Stage Renal Disease** may be under 65, provision created by Social Security Act 
+* **Disabled** may be under 65 with qualifying disabilities
+* **Aged Dual** are 65 and older and are enrolled in both Medicaid and Medicare
+* **Aged Non Dual** are 65 and older and only enrolled in Medicare
+
+```{r}
 selectInput(inputId = "category",
             label = "Category",
             choices = county$Category)
@@ -331,7 +382,7 @@ renderPlot({
 
 > Data is aggregated at a county level. This map is meant to show a distribution of patient characteristics in each state by county.
 
-Summary 
+Summary {data-width=250}
 -------------------------------------
 
 ### Beneficiary Summary
