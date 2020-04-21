@@ -425,7 +425,59 @@ county %>%
   )})
 ```
 
+About 
+===================================== 
+
+
+
+Data Sources {data-width=750}
+-------------------------------------
+
+### Data Sources
+
+#### ACO Data
+
+2018 Shared Savings Program (SSP) 
+Accountable Care Organizations (ACO)
+Public Use File 
+
+To address the increasing number of requests for SSP ACO data, the Centers for Medicare (CM) has created a standard analytical file that CMS can use to efficiently satisfy these requests. It is the intent of CM to publish the ACO-level public-use file (PUF) that contains ACO-specific metrics as well as summarized beneficiary and provider information for each performance year of the SSP program.
+
+https://data.cms.gov/Special-Programs-Initiatives-Medicare-Shared-Savin/2018-Shared-Savings-Program-SSP-Accountable-Care-O/v47u-yq84
+
+#### Beneficiaries by County Data 
+
+Aggregate data consisting of per capita Parts A and B FFS expenditures, average CMS-HCC prospective risk scores and total person-years for assignable beneficiaries by Medicare enrollment type (End Stage Renal Disease (ESRD), disabled, aged/dual eligible, aged/non-dual eligible). It is the intent of CM to publish this PUF annually, in the summer following the conclusion of the calendar year to which it relates.
+
+https://data.cms.gov/Special-Programs-Initiatives-Medicare-Shared-Savin/2018-County-level-FFS-Data-for-Shared-Savings-Prog/sju4-8k6c"
+
+
+> Source code for this project is available on Github [here](https://github.com/karenmjiang/MSSP-ACO-2018).
+
 About
-=====================================   
+-------------------------------------
+
+### About Me
+
+#### My name is Karen Jiang 
+
+I am MPH Candidate in Health Policy at the [**Harvard T. H. Chan School of Public Health**](https://www.hsph.harvard.edu/). I am interested in using data visualization and communication as an advocacy tool to bring to light health disparities and help people make better decisions about health policy.
+
+### Contact Info
+
+#### Connect with me via...
+
+`r icon::fa("envelope")` Email:
+
+* karenjiang@hsph.harvard.edu
+* karenmjiang@gmail.com
+
+`r icon::fa("linkedin-in")` LinkedIn:
+
+* [linkedin.com/in/karenmjiang](https://www.linkedin.com/in/karenmjiang/)
+
+`r icon::fa("github")` Github:
+
+* [github.com/karenmjiang](https://github.com/karenmjiang)
 
 

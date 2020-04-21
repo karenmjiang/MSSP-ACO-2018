@@ -37,7 +37,8 @@ num_new <- aco %>%
   filter(Initial_Start_Year == 2018) %>%
   nrow()
 
-valueBox(num_new, icon = "fa-user-plus")
+valueBox(num_new, icon = "fa-user-plus",
+         href = "https://fontawesome.com/icons?d=gallery")
 ```
 
 ### Total Number of Participating Providers 
@@ -55,6 +56,8 @@ num_beneficiaries <- sum(aco$N_AB)
 valueBox(prettyNum(num_beneficiaries, big.mark = ","), 
          icon = "fa-user-friends")
 ```
+
+
 
 
 Row {.tabset .tabset-fade}
