@@ -9,6 +9,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+options(scipen = 999)
 
 library(tidyverse)
 library(ggplot2)
@@ -16,6 +17,54 @@ library(ggplot2)
 aco <- readRDS(file = "data/aco.RDS")
 county <- readRDS(file = "data/county.RDS")
 ```
+
+
+### Results
+
+4 variables that we can use to look at performance results of ACOs in 2018.
+
+
+**Benchmark Minus Expenditure** - $US How much money was allotted for all beneficiaries (benchmark) minus the total amount spent (Expenditure)
+
+```{r}
+
+bme <- ggplot(aco, aes(x = BnchmkMinExp)) + 
+  geom_density(aes(fill = GenSaveLoss_categorical), alpha = 0.4) +
+  theme_minimal()
+
+bme
+```
+
+
+
+* **Generated Savings / Losses** - For the ACO, how much money did they receive in savings or had to pay back? Within the Minimum Loss Ratio and Minimum Savings ratio, they net 0 losses and savings. 
+
+
+```{r}
+gsl <- ggplot(aco, aes(x=GenSaveLoss)) +
+  geom_density() + theme_minimal()
+```
+
+
+* **Generated Savings / Losses Categories** - for the ACO, did they experience Savings, Losses, or Neither (0)
+
+```{r}
+
+gsl_c <- ggplot(aco, aes(x = GenSaveLoss_categorical)) + geom_bar(aes(fill = GenSaveLoss_categorical)) + 
+  theme_minimal()
+```
+
+
+
+* **Savings Rate** - Percentage of Benchmark Minus Expenditure / initial Benchmark.
+
+```{r}
+sr <- ggplot(aco, aes(x = Sav_rate)) + 
+  geom_density(aes(fill = GenSaveLoss_categorical), alpha = 0.4) +
+  theme_minimal()
+```
+
+
 
 ### There are fewer ACOs still participating year over year
 

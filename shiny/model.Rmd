@@ -1,8 +1,6 @@
 ---
 title: "Models"
-output: 
-  flexdashboard::flex_dashboard:
-    orientation: columns
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -13,15 +11,221 @@ library(ggplot2)
 library(plotly)
 library(broom)
 library(gt)
+library(tidymodels)
+library(rpart.plot)
 
 aco <- readRDS(file = "data/aco.RDS")
 county <- readRDS(file = "data/county.RDS")
 ```
 
-Column
--------------------------------------
+
+We would want to run a model that can help predict the **Savings Rate** and **Generated Savings / Losses Category**. 
+
+## Hypothesis
+
+I hypothesize that 3 factors can help predict the savings rate for an ACO. 
+
+* ACO Factors
+  - Starting Year
+  - Ratio of Beneficiaries to Providers
+  - Current Track type
+  - Quality Score
+  - Number of States
+  
+* Patient Factors
+  - Ages (% in age categories 0-64, 65-74, 75-84, 85+)
+  - Gender (% Male or Female)
+  
+* Provider Factors
+  - % Primary Care Providers
+  - % Specialists
+  
+  
+```{r}
+colnames(aco)
+```
+
+
+```{r}
+smp_size <- floor(0.75 * nrow(aco))
+
+set.seed(1005)
+train_ind <- sample(nrow(aco), size = smp_size)
+
+train <- aco[train_ind, ]
+test <- aco[-train_ind, ]
+
+```
+
+  
+## ACO Factors
+  
+```{r}
+
+cart_mod <- decision_tree() %>%
+  set_engine("rpart",
+             model = TRUE) %>%
+  set_mode("classification")
+
+
+cart_fit <- fit(cart_mod,
+                    as.factor(GenSaveLoss_categorical) ~ Initial_Start_Year + ratio_AB_to_providers + current + QualScore + num_states,
+                    data = train)
+
+
+
+forest_mod <- rand_forest(mtry = 7, trees = 50) %>%
+  set_engine("randomForest") %>%
+  set_mode("classification")
+
+forest_fit <- fit(forest_mod,
+                    as.factor(GenSaveLoss_categorical) ~ Initial_Start_Year + ratio_AB_to_providers + current + QualScore + num_states,
+                    data = train)
+
+
+predictions <- test %>%
+  mutate(cart = predict(cart_fit, test) %>% 
+           pull(.pred_class),
+         forest = predict(forest_fit, test) %>%
+           pull(.pred_class)
+  )
+
+tibble(
+  cart = mean(predictions$cart == predictions$GenSaveLoss_categorical),
+  forest = mean(predictions$forest == predictions$GenSaveLoss_categorical)
+)
+```
+
+## Patient Factors  
+
+```{r}
+cart_mod <- decision_tree() %>%
+  set_engine("rpart",
+             model = TRUE) %>%
+  set_mode("classification")
+
+
+cart_fit <- fit(cart_mod,
+                    as.factor(GenSaveLoss_categorical) ~ perc_Age_0_64 + perc_Age_65_74 + perc_Age_75_84 + perc_Age_85plus + perc_male,
+                    data = train)
+
+
+
+forest_mod <- rand_forest(mtry = 7, trees = 50) %>%
+  set_engine("randomForest") %>%
+  set_mode("classification")
+
+forest_fit <- fit(forest_mod,
+                     as.factor(GenSaveLoss_categorical) ~ perc_Age_0_64 + perc_Age_65_74 + perc_Age_75_84 + perc_Age_85plus + perc_male,
+                    data = train)
+
+
+predictions <- test %>%
+  mutate(cart = predict(cart_fit, test) %>% 
+           pull(.pred_class),
+         forest = predict(forest_fit, test) %>%
+           pull(.pred_class)
+  )
+
+tibble(
+  cart = mean(predictions$cart == predictions$GenSaveLoss_categorical),
+  forest = mean(predictions$forest == predictions$GenSaveLoss_categorical)
+)
+
+```
+
+## Provider Factors
+
+```{r}
+cart_mod <- decision_tree() %>%
+  set_engine("rpart",
+             model = TRUE) %>%
+  set_mode("classification")
+
+
+cart_fit <- fit(cart_mod,
+                    as.factor(GenSaveLoss_categorical) ~ perc_PCP + perc_Spec + N_total_providers,
+                    data = train)
+
+
+
+forest_mod <- rand_forest(mtry = 7, trees = 50) %>%
+  set_engine("randomForest") %>%
+  set_mode("classification")
+
+forest_fit <- fit(forest_mod,
+                     as.factor(GenSaveLoss_categorical) ~ perc_PCP + perc_Spec + N_total_providers,
+                    data = train)
+
+
+predictions <- test %>%
+  mutate(cart = predict(cart_fit, test) %>% 
+           pull(.pred_class),
+         forest = predict(forest_fit, test) %>%
+           pull(.pred_class)
+  )
+
+tibble(
+  cart = mean(predictions$cart == predictions$GenSaveLoss_categorical),
+  forest = mean(predictions$forest == predictions$GenSaveLoss_categorical)
+)
+```
+
+
+## Kitchen Sink
+
+```{r}
+
+cart_mod <- decision_tree() %>%
+  set_engine("rpart",
+             model = TRUE) %>%
+  set_mode("classification")
+
+
+cart_fit <- fit(cart_mod,
+                    as.factor(GenSaveLoss_categorical) ~ Initial_Start_Year + ratio_AB_to_providers + current + QualScore + num_states + perc_Age_0_64 + perc_Age_65_74 + perc_Age_75_84 + perc_Age_85plus + perc_male + perc_PCP + perc_Spec + N_total_providers,
+                    data = train)
+
+
+
+forest_mod <- rand_forest(mtry = 7, trees = 50) %>%
+  set_engine("randomForest") %>%
+  set_mode("classification")
+
+forest_fit <- fit(forest_mod,
+                    as.factor(GenSaveLoss_categorical) ~ Initial_Start_Year + ratio_AB_to_providers + current + QualScore + num_states + perc_Age_0_64 + perc_Age_65_74 + perc_Age_75_84 + perc_Age_85plus + perc_male + perc_PCP + perc_Spec + N_total_providers,
+                    data = train)
+
+
+predictions <- test %>%
+  mutate(cart = predict(cart_fit, test) %>% 
+           pull(.pred_class),
+         forest = predict(forest_fit, test) %>%
+           pull(.pred_class)
+  )
+
+tibble(
+  cart = mean(predictions$cart == predictions$GenSaveLoss_categorical),
+  forest = mean(predictions$forest == predictions$GenSaveLoss_categorical)
+)
+
+```
+
+
+```{r}
+aco %>%
+  filter(current != "Track 1") %>%
+  ggplot(aes(x = Sav_rate, y=GenSaveLoss)) + geom_point()
+```
+
+
+## ACO metrics
+
+
 
 ### Linear Regression Table
+
+Relationship between starting year and generated savings
 
 ```{r}
 aco %>%
@@ -48,13 +252,6 @@ aco %>%
 * ACOs who started in 2012 report an average of $7,653,639 in savings on average.
 
 * The average savings for ACOs who started each subsequent year decreases by $1,059,183.
-
-
-### Another Linear Regression Table
-
-```{r}
-
-```
 
 
 
@@ -118,17 +315,4 @@ test %>%
 
 ```
 
-
-### Chart B
-
-```{r}
-
-```
-
-
-### Chart C
-
-```{r}
-
-```
 

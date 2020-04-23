@@ -92,7 +92,13 @@ aco <-
   mutate(perc_Age_0_64 = N_Ben_Age_0_64 / N_AB,
          perc_Age_65_74 = N_Ben_Age_65_74 / N_AB,
          perc_Age_75_84 = N_Ben_Age_75_84 / N_AB,
-         perc_Age_85plus = N_Ben_Age_85plus / N_AB)
+         perc_Age_85plus = N_Ben_Age_85plus / N_AB) %>%
+  
+  # Calculate percentage for gender
+  mutate(perc_male = N_Ben_Male / (N_Ben_Male + N_Ben_Female)) %>%
+  
+  # Remove the number of beneficiaries now that we have percentages
+  select(-contains("N_Ben_"), -N_PCP, -N_Spec, -N_NP, -N_PA, -N_CNS)
 
 
 saveRDS(aco, file = "clean_data/aco.RDS")
