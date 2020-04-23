@@ -45,11 +45,11 @@ I hypothesize that 3 factors can help predict the savings rate for an ACO.
 colnames(aco)
 ```
 
+# Classification
 
 ```{r}
 smp_size <- floor(0.75 * nrow(aco))
 
-set.seed(1005)
 train_ind <- sample(nrow(aco), size = smp_size)
 
 train <- aco[train_ind, ]
@@ -74,7 +74,7 @@ cart_fit <- fit(cart_mod,
 
 
 
-forest_mod <- rand_forest(mtry = 7, trees = 50) %>%
+forest_mod <- rand_forest(mtry = 7, trees = 100) %>%
   set_engine("randomForest") %>%
   set_mode("classification")
 
@@ -90,10 +90,11 @@ predictions <- test %>%
            pull(.pred_class)
   )
 
-tibble(
+aco_factor <- tibble(
   cart = mean(predictions$cart == predictions$GenSaveLoss_categorical),
   forest = mean(predictions$forest == predictions$GenSaveLoss_categorical)
-)
+) 
+
 ```
 
 ## Patient Factors  
@@ -111,7 +112,7 @@ cart_fit <- fit(cart_mod,
 
 
 
-forest_mod <- rand_forest(mtry = 7, trees = 50) %>%
+forest_mod <- rand_forest(mtry = 7, trees = 100) %>%
   set_engine("randomForest") %>%
   set_mode("classification")
 
@@ -127,7 +128,7 @@ predictions <- test %>%
            pull(.pred_class)
   )
 
-tibble(
+patient_factor <- tibble(
   cart = mean(predictions$cart == predictions$GenSaveLoss_categorical),
   forest = mean(predictions$forest == predictions$GenSaveLoss_categorical)
 )
@@ -149,7 +150,7 @@ cart_fit <- fit(cart_mod,
 
 
 
-forest_mod <- rand_forest(mtry = 7, trees = 50) %>%
+forest_mod <- rand_forest(mtry = 7, trees = 100) %>%
   set_engine("randomForest") %>%
   set_mode("classification")
 
@@ -165,7 +166,7 @@ predictions <- test %>%
            pull(.pred_class)
   )
 
-tibble(
+provider_factor <- tibble(
   cart = mean(predictions$cart == predictions$GenSaveLoss_categorical),
   forest = mean(predictions$forest == predictions$GenSaveLoss_categorical)
 )
@@ -188,7 +189,7 @@ cart_fit <- fit(cart_mod,
 
 
 
-forest_mod <- rand_forest(mtry = 7, trees = 50) %>%
+forest_mod <- rand_forest(mtry = 7, trees = 100) %>%
   set_engine("randomForest") %>%
   set_mode("classification")
 
@@ -204,7 +205,7 @@ predictions <- test %>%
            pull(.pred_class)
   )
 
-tibble(
+all_vars <- tibble(
   cart = mean(predictions$cart == predictions$GenSaveLoss_categorical),
   forest = mean(predictions$forest == predictions$GenSaveLoss_categorical)
 )
@@ -213,10 +214,38 @@ tibble(
 
 
 ```{r}
+results <- bind_rows(aco_factor, patient_factor, provider_factor, all_vars, .id = "ID") %>%
+  mutate(factors = c("ACO Factors", "Patient Factors", "Provider Factors", "All Factors")) %>%
+  pivot_longer(cols = c(cart, forest), names_to = "method", values_to = "prediction")
+
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+getmode(train$GenSaveLoss_categorical)
+
+mode <- mean(getmode(train$GenSaveLoss_categorical) == predictions$GenSaveLoss_categorical)
+
+results %>%
+ ggplot(aes(x = reorder(factors, as.numeric(ID)), y = prediction)) + geom_col(aes(fill = method), position = "dodge") + 
+  geom_hline(yintercept = mode)
+  theme_minimal()
+```
+
+
+```{r}
 aco %>%
   filter(current != "Track 1") %>%
   ggplot(aes(x = Sav_rate, y=GenSaveLoss)) + geom_point()
 ```
+
+
+
+
+# Regression
+
+
+
 
 
 ## ACO metrics
