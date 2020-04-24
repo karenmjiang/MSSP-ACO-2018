@@ -5,6 +5,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+options(scipen = 999)
 
 library(tidyverse)
 library(ggplot2)
@@ -62,26 +63,37 @@ test <- aco[-train_ind, ]
   
 ```{r}
 
+# Creating Cart box
+
 cart_mod <- decision_tree() %>%
   set_engine("rpart",
              model = TRUE) %>%
   set_mode("classification")
 
+# Fitting Cart Model
 
-cart_fit <- fit(cart_mod,
-                    as.factor(GenSaveLoss_categorical) ~ Initial_Start_Year + ratio_AB_to_providers + current + QualScore + num_states,
-                    data = train)
+cart_fit <- function() {
+  fit(
+    cart_mod,
+    as.factor(GenSaveLoss_categorical) ~ Initial_Start_Year + ratio_AB_to_providers + current + QualScore + num_states,
+    data = train
+  )
+}
 
-
+# Creating Forest Box
 
 forest_mod <- rand_forest(mtry = 7, trees = 100) %>%
   set_engine("randomForest") %>%
   set_mode("classification")
 
+# Fitting Forest Model
+
 forest_fit <- fit(forest_mod,
                     as.factor(GenSaveLoss_categorical) ~ Initial_Start_Year + ratio_AB_to_providers + current + QualScore + num_states,
                     data = train)
 
+
+# Pulling Prediction Results
 
 predictions <- test %>%
   mutate(cart = predict(cart_fit, test) %>% 
@@ -89,6 +101,8 @@ predictions <- test %>%
          forest = predict(forest_fit, test) %>%
            pull(.pred_class)
   )
+
+# Summarizing Results
 
 aco_factor <- tibble(
   cart = mean(predictions$cart == predictions$GenSaveLoss_categorical),
@@ -100,6 +114,7 @@ aco_factor <- tibble(
 ## Patient Factors  
 
 ```{r}
+
 cart_mod <- decision_tree() %>%
   set_engine("rpart",
              model = TRUE) %>%
@@ -232,6 +247,91 @@ results %>%
   theme_minimal()
 ```
 
+> CART and Forest models on a single run are not better at predicting the outcome that selecting the mode for all answers.
+
+
+# Regression
+
+
+## Patient
+```{r}
+patient <- aco %>%
+  rep_sample_n(size = nrow(aco), reps = 100, replace = TRUE) %>%
+  group_by(replicate) %>%
+  nest() %>%
+  mutate(mod = map(data, ~ lm(Sav_rate ~ perc_Age_0_64 + perc_Age_65_74 + perc_Age_75_84 + perc_Age_85plus + perc_male, data = .)),
+         reg_results = map(mod, ~ tidy(., conf.int = TRUE))) %>%
+  unnest(reg_results) %>%
+  select(-data, -mod)
+
+patient %>% head()
+
+mean <- patient %>% filter(term == "perc_male") %>%
+  pull(estimate) %>%
+  mean()
+
+patient %>%
+  filter(term == "perc_male") %>%
+  ggplot(aes(x = reorder(replicate, -estimate))) +
+  geom_point(aes(y = estimate, color = estimate > 0)) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+  geom_hline(yintercept = mean) +
+  coord_flip() +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid.major.y = element_blank()
+  ) +
+  labs(
+    x = "Estimate",
+    y = "Simulations",
+    title = "Results of 100 Simulations of Linear Regression",
+    subtitle = paste("Mean of Estimates of Pecent Male is", round(mean, 3))
+  )
+```
+
+
+
+## Provider
+```{r}
+provider <- aco %>%
+  rep_sample_n(size = nrow(aco), reps = 100, replace = TRUE) %>%
+  group_by(replicate) %>%
+  nest() %>%
+  mutate(mod = map(data, ~ lm(Sav_rate ~ perc_PCP + perc_Spec + N_total_providers, data = .)),
+         reg_results = map(mod, ~ tidy(., conf.int = TRUE))) %>%
+  unnest(reg_results) %>%
+  select(-data, -mod)
+
+
+provider %>%
+  filter(term == "perc_PCP") %>%
+  ggplot(aes(x = reorder(replicate, -estimate))) +
+  geom_point(aes(y = estimate, color = estimate > 0)) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) 
+  
+
+```
+
+
+## ACO
+```{r}
+train %>%
+  rep_sample_n(size = nrow(test), reps = 10, replace = TRUE) %>%
+  group_by(replicate) %>%
+  nest() %>%
+  mutate(mod = map(data, ~ lm(Sav_rate ~ Initial_Start_Year + ratio_AB_to_providers + current + QualScore + num_states + perc_Age_0_64 + perc_Age_65_74 + perc_Age_75_84 + perc_Age_85plus + perc_male + perc_PCP + perc_Spec + N_total_providers, data = .)),
+         reg_results = map(mod, ~ tidy(.))) %>%
+  unnest(reg_results) %>%
+  select(-data, -mod)
+
+```
 
 ```{r}
 aco %>%

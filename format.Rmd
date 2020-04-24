@@ -1,7 +1,8 @@
 ---
 title: "Accountable Care Organizations"
 output: 
-  flexdashboard::flex_dashboard
+  flexdashboard::flex_dashboard:
+    theme: paper
 runtime: shiny
 ---
 
@@ -121,29 +122,167 @@ The following is a very pared down version of how ACOs
 
 
 
-Results {.storyboard}
+Results 
 =====================================     
 
-### ACOs that started earlier are more successful
+Inputs {.sidebar}
+-------------------------------------
+
+Use the filters to see the results of how ACOs fared in 2018.
+
+```{r}
+selectInput(inputId = "agree",
+            label = "Agreement Type",
+            choices = aco$Agree_Type,
+            multiple = TRUE,
+            selected = unique(aco$Agree_Type))
+
+selectInput(inputId = "current",
+            label = "Current Track",
+            choices = aco$current,
+            multiple = TRUE,
+            selected = unique(aco$current))
+
+selectInput(inputId = "initial",
+            label = "Initial Starting Year",
+            choices = aco$Initial_Start_Year,
+            multiple = TRUE,
+            selected = unique(aco$Initial_Start_Year))
+
+selectInput(inputId = "num_states",
+            label = "Number of States",
+            choices = aco$num_states,
+            multiple = TRUE,
+            selected = unique(aco$num_states))
+```
+
+
+Column
+-------------------------------------
+
+### RESULTS
+
+There are 3 variables we can examine to look at performance results of ACOs in 2018.
+
+- Categories for Generated Savings / Losses (Categorical)
+- Benchmark minus Expenditures (Continuous - absolute measure)
+- Savings Rate (Continuous - relative measure)
+
+
+
+### Categories for Generated  Savings / Losses
+
+
+
+
+```{r}
+renderPlot({
+  aco %>%
+    filter(
+      Agree_Type %in% input$agree,
+      current %in% input$current,
+      Initial_Start_Year %in% input$initial,
+      num_states %in% input$num_states
+    ) %>%
+    count(GenSaveLoss_categorical) %>%
+    ggplot(aes(x = GenSaveLoss_categorical, y = n)) +
+    geom_col(aes(fill = GenSaveLoss_categorical)) +
+    geom_text(aes(y = n + 10, label = n)) +
+    theme_minimal() +
+    labs(title = "Counts of Generated Savings / Losses Categories",
+         y = "Count") +
+    theme(
+      panel.grid = element_blank(),
+      legend.position = "none",
+      axis.title = element_blank(),
+      axis.text.y = element_blank()
+    )
+})
+```
+
+
+Column
+-------------------------------------
     
-```{r}
-```
-
-***
-
-* Commentary 
-* Additional Thoughts
     
-### Chart 2
+### Benchmark Minus Expenditures
+
 
 ```{r}
+renderPlot({
+  aco %>%
+    filter(
+      Agree_Type %in% input$agree,
+      current %in% input$current,
+      Initial_Start_Year %in% input$initial,
+      num_states %in% input$num_states
+    ) %>%
+    ggplot(aes(x = BnchmkMinExp)) +
+    geom_density(aes(fill = GenSaveLoss_categorical), alpha = 0.4) +
+    geom_density(linetype = "dotted") +
+    theme_minimal() +
+    labs(
+      title = "Amount Generated (Savings / Losses)",
+      x = "$ Amount",
+      y = "Density",
+      fill = "Category"
+    ) +
+    theme(panel.grid = element_blank())
+})
 ```
 
-   
+> **Benchmark** (total amount allotted for all beneficiaries)  minus the **Expenditure** (total amount submitted in claims)
+
+### Savings Rate
+
+**Savings Rate** = Benchmark - Expenditure / Benchmark 
+
+
+```{r}
+renderPlot({
+  aco %>%
+    filter(
+      Agree_Type %in% input$agree,
+      current %in% input$current,
+      Initial_Start_Year %in% input$initial,
+      num_states %in% input$num_states
+    ) %>%
+    ggplot(aes(x = Sav_rate)) +
+    geom_density(aes(fill = GenSaveLoss_categorical), alpha = 0.4) +
+    geom_density(linetype = "dotted") +
+    theme_minimal() +
+    labs(
+      title = "Savings Rate Distribution",
+      x = "Savings Rate",
+      y = "Density",
+      fill = "Category"
+    ) +
+    theme(panel.grid = element_blank())
+})
+```
+
+> This metric shows the relative size of the gains or losses, normalized by the benchmark amount. 
+
+Regression {data-navmenu="Models"}
+=====================================   
+
+Regression {.tabset}
+-------------------------------------
+
+### ACO
+
+```{r}
+
+```
+
+### Patient
 
 
 
-Patients {data-navmenu="Models"}
+### Pr
+
+
+Classification {data-navmenu="Models"}
 =====================================   
 
 ```{r}
@@ -153,26 +292,6 @@ Patients {data-navmenu="Models"}
 
 
 
-Providers {data-navmenu="Models"}
-=====================================   
-
-```{r}
-
-```
-
-
-
-
-
-Quality Outcomes {data-navmenu="Models"}
-=====================================   
-
-```{r}
-
-```
-
-
-   
 
 Country {data-navmenu="Maps"}
 =====================================   

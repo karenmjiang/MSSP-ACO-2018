@@ -1,0 +1,256 @@
+---
+title: "Regression"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: paper
+    
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(ggplot2)
+library(infer)
+library(broom)
+
+aco <- readRDS("clean_data/aco.RDS")
+county <- readRDS("clean_data/county.RDS")
+```
+
+```{r}
+
+acos <- aco %>%
+    rep_sample_n(size = nrow(aco),
+                 reps = 100,
+                 replace = TRUE) %>%
+    group_by(replicate) %>%
+    nest() %>%
+    mutate(mod = map(
+      data,
+      ~ lm(Sav_rate ~ Initial_Start_Year + ratio_AB_to_providers + current + QualScore + num_states,
+        data = .
+      )
+    ),
+    reg_results = map(mod, ~ tidy(., conf.int = TRUE))) %>%
+    unnest(reg_results) %>%
+    select(-data,-mod) %>%
+    mutate(
+      term = case_when(
+        term == "(Intercept)" ~ "Intercept",
+        term == "Initial_Start_Year2013" ~ "Initial Starting Year in 2013",
+        term == "Initial_Start_Year2014" ~ "Initial Starting Year in 2014",
+        term == "Initial_Start_Year2015" ~ "Initial Starting Year in 2015",
+        term == "Initial_Start_Year2016" ~ "Initial Starting Year in 2016",
+        term == "Initial_Start_Year2017" ~ "Initial Starting Year in 2017",
+        term == "Initial_Start_Year2018" ~ "Initial Starting Year in 2018",
+        term == "ratio_AB_to_providers" ~ "Ratio of Assigned Beneficiaries to Providers",
+        term == "currentTrack 1 Plus" ~ "Track 1 Plus",
+        term == "currentTrack 2" ~ "Track 2",
+        term == "currentTrack 3" ~ "Track 3",
+        term == "QualScore" ~ "Data Quality Score",
+        term == "num_states" ~ "Number of States"
+      )
+    )
+
+provider <- aco %>%
+    rep_sample_n(size = nrow(aco),
+                 reps = 100,
+                 replace = TRUE) %>%
+    group_by(replicate) %>%
+    nest() %>%
+    mutate(mod = map(
+      data,
+      ~ lm(Sav_rate ~ perc_PCP + perc_Spec + N_total_providers,
+        data = .
+      )
+    ),
+    reg_results = map(mod, ~ tidy(., conf.int = TRUE))) %>%
+    unnest(reg_results) %>%
+    select(-data,-mod) %>%
+    mutate(
+      term = case_when(
+        term == "(Intercept)" ~ "Intercept",
+        term == "perc_PCP" ~ "% PCP Providers",
+        term == "perc_Spec" ~ "% Speciality Providers",
+        term == "N_total_providers" ~ "Number of Total Providers"
+      )
+    )
+
+
+patient <- aco %>%
+    rep_sample_n(size = nrow(aco),
+                 reps = 100,
+                 replace = TRUE) %>%
+    group_by(replicate) %>%
+    nest() %>%
+    mutate(mod = map(
+      data,
+      ~ lm(
+        Sav_rate ~ perc_Age_0_64 + perc_Age_65_74 + perc_Age_75_84 + perc_Age_85plus + perc_male,
+        data = .
+      )
+    ),
+    reg_results = map(mod, ~ tidy(., conf.int = TRUE))) %>%
+    unnest(reg_results) %>%
+    select(-data,-mod) %>%
+    mutate(
+      term = case_when(
+        term == "(Intercept)" ~ "Intercept",
+        term == "perc_Age_0_64" ~ "% Beneficiaries Age 0-64",
+        term == "perc_Age_65_74" ~ "% Beneficiaries Age 65-74",
+        term == "perc_Age_75_84" ~ "% Beneficiaries Age 75-84",
+        term == "perc_male" ~ "% Beneficiaries Male",
+      )
+    )
+```
+
+
+Regression {.sidebar}
+-------------------------------------
+
+#### ACO
+
+```{r}
+selectInput(inputId = "aco_term",
+            label = "ACO Term",
+            choices = acos$term,
+            selected = "Intercept")
+```
+
+#### Patient
+
+```{r}
+selectInput(inputId = "patient_term",
+            label = "Patient Term",
+            choices = patient$term,
+            selected = "Intercept")
+```
+
+
+#### Provider
+
+```{r}
+
+selectInput(inputId = "provider_term",
+            label = "Provider Term",
+            choices = provider$term,
+            selected = "Intercept")
+
+```
+
+
+Regression {.tabset}
+-------------------------------------
+
+### ACO
+
+```{r}
+renderPlot({
+  
+  # patient %>% head()
+  
+  mean <- acos %>% filter(term == input$aco_term) %>%
+    pull(estimate) %>%
+    mean()
+  
+  acos %>%
+    filter(term == input$aco_term) %>%
+    ggplot(aes(x = reorder(replicate,-estimate))) +
+    geom_point(aes(y = estimate, color = estimate > 0)) +
+    geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+    geom_hline(yintercept = mean) +
+    coord_flip() +
+    theme_minimal() +
+    theme(
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid.major.y = element_blank()
+    ) +
+  labs(
+    x = "Savings Rate Estimate",
+    y = "Simulations",
+    subtitle = "Results of 100 Simulations",
+    title = paste("Mean of Estimates of ", input$aco_term, "is ", round(mean, 3))
+  )
+})
+```
+
+***
+
+* Intercept: The average savings rating when all other variables are equal to 0 (for Initial Starting Year 2012, Track 1, and 0 beneficiaries to Providers)
+* Initial Starting Year Terms: The average change in Savings Rate if the starting year was selected, holding all other variables constant.
+* Ratio of Assigned Beneficiaries to Providers: The average change in Savings Rate when the ratio of
+
+
+### Patient
+
+```{r}
+renderPlot({
+  
+  # patient %>% head()
+  
+  mean <- patient %>% filter(term == input$patient_term) %>%
+    pull(estimate) %>%
+    mean()
+  
+  patient %>%
+    filter(term == input$patient_term) %>%
+    ggplot(aes(x = reorder(replicate,-estimate))) +
+    geom_point(aes(y = estimate, color = estimate > 0)) +
+    geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+    geom_hline(yintercept = mean) +
+    coord_flip() +
+    theme_minimal() +
+    theme(
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid.major.y = element_blank()
+    ) +
+  labs(
+    x = "Savings Rate Estimate",
+    y = "Simulations",
+    subtitle = "Results of 100 Simulations",
+    title = paste("Mean of Estimates of ", input$patient_term, "is ", round(mean, 3))
+  )
+})
+```
+
+
+
+### Providers
+
+```{r}
+renderPlot({
+  
+  # patient %>% head()
+  
+  mean <- provider %>% filter(term == input$provider_term) %>%
+    pull(estimate) %>%
+    mean()
+  
+  provider %>%
+    filter(term == input$provider_term) %>%
+    ggplot(aes(x = reorder(replicate,-estimate))) +
+    geom_point(aes(y = estimate, color = estimate > 0)) +
+    geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+    geom_hline(yintercept = mean) +
+    coord_flip() +
+    theme_minimal() +
+    theme(
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid.major.y = element_blank()
+    ) +
+  labs(
+    x = "Savings Rate Estimate",
+    y = "Simulations",
+    subtitle = "Results of 100 Simulations of Linear Regression",
+    title = paste("Mean of Estimates of ", input$provider_term, "is ", round(mean, 3))
+  )
+})
+```
+
+
+### All
