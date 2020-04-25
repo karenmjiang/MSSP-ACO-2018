@@ -29,7 +29,7 @@ acos <- aco %>%
     nest() %>%
     mutate(mod = map(
       data,
-      ~ lm(Sav_rate ~ Initial_Start_Year + ratio_AB_to_providers + current + QualScore + num_states,
+      ~ lm(Sav_rate ~ Initial_Start_Year + ratio_AB_to_providers + current + QualScore,
         data = .
       )
     ),
@@ -49,12 +49,13 @@ acos <- aco %>%
         term == "currentTrack 1 Plus" ~ "Track 1 Plus",
         term == "currentTrack 2" ~ "Track 2",
         term == "currentTrack 3" ~ "Track 3",
-        term == "QualScore" ~ "Data Quality Score",
-        term == "num_states" ~ "Number of States"
-      )
+        term == "QualScore" ~ "Data Quality Score"
+      ),
+      term = as.factor(term)
     )
 
 provider <- aco %>%
+    mutate(N_total_providers = N_total_providers / 100) %>%
     rep_sample_n(size = nrow(aco),
                  reps = 100,
                  replace = TRUE) %>%
@@ -75,7 +76,8 @@ provider <- aco %>%
         term == "perc_PCP" ~ "% PCP Providers",
         term == "perc_Spec" ~ "% Speciality Providers",
         term == "N_total_providers" ~ "Number of Total Providers"
-      )
+      ),
+      term = as.factor(term)
     )
 
 
@@ -88,7 +90,7 @@ patient <- aco %>%
     mutate(mod = map(
       data,
       ~ lm(
-        Sav_rate ~ perc_Age_0_64 + perc_Age_65_74 + perc_Age_75_84 + perc_Age_85plus + perc_male,
+        Sav_rate ~ perc_Age_65_74 + perc_Age_75_84 + perc_Age_85plus + perc_male,
         data = .
       )
     ),
@@ -98,11 +100,12 @@ patient <- aco %>%
     mutate(
       term = case_when(
         term == "(Intercept)" ~ "Intercept",
-        term == "perc_Age_0_64" ~ "% Beneficiaries Age 0-64",
         term == "perc_Age_65_74" ~ "% Beneficiaries Age 65-74",
         term == "perc_Age_75_84" ~ "% Beneficiaries Age 75-84",
+        term == "perc_Age_85plus" ~ "% Beneficiaries Age 85 +",
         term == "perc_male" ~ "% Beneficiaries Male",
-      )
+      ),
+      term = as.factor(term)
     )
 ```
 
@@ -110,86 +113,38 @@ patient <- aco %>%
 Regression {.sidebar}
 -------------------------------------
 
-#### ACO
+Here we examine the effects of *Patient* factors, *Provider* factors, and *ACO* factors on the **Savings Rate** using a multi-variate linear regression. The results of the 100 simulations of the regression are plotted. Each row represents the estimate produced by a single simulation, with error bars for the estimated value.
 
-```{r}
-selectInput(inputId = "aco_term",
-            label = "ACO Term",
-            choices = acos$term,
-            selected = "Intercept")
-```
+**Dropdowns only work on corresponding panels**.
 
-#### Patient
+
 
 ```{r}
 selectInput(inputId = "patient_term",
-            label = "Patient Term",
+            label = "Patient Factors",
             choices = patient$term,
-            selected = "Intercept")
-```
-
-
-#### Provider
-
-```{r}
+            selected = unique(patient$term)[1])
 
 selectInput(inputId = "provider_term",
-            label = "Provider Term",
+            label = "Provider Factors",
             choices = provider$term,
-            selected = "Intercept")
+            selected = unique(provider$term)[1])
 
+selectInput(inputId = "aco_term",
+            label = "ACO Factors",
+            choices = acos$term,
+            selected = "Intercept") 
 ```
+
 
 
 Regression {.tabset}
 -------------------------------------
 
-### ACO
-
-```{r}
-renderPlot({
-  
-  # patient %>% head()
-  
-  mean <- acos %>% filter(term == input$aco_term) %>%
-    pull(estimate) %>%
-    mean()
-  
-  acos %>%
-    filter(term == input$aco_term) %>%
-    ggplot(aes(x = reorder(replicate,-estimate))) +
-    geom_point(aes(y = estimate, color = estimate > 0)) +
-    geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
-    geom_hline(yintercept = mean) +
-    coord_flip() +
-    theme_minimal() +
-    theme(
-      axis.text.y = element_blank(),
-      axis.ticks = element_blank(),
-      panel.grid.major.y = element_blank()
-    ) +
-  labs(
-    x = "Savings Rate Estimate",
-    y = "Simulations",
-    subtitle = "Results of 100 Simulations",
-    title = paste("Mean of Estimates of ", input$aco_term, "is ", round(mean, 3))
-  )
-})
-```
-
-***
-
-* Intercept: The average savings rating when all other variables are equal to 0 (for Initial Starting Year 2012, Track 1, and 0 beneficiaries to Providers)
-* Initial Starting Year Terms: The average change in Savings Rate if the starting year was selected, holding all other variables constant.
-* Ratio of Assigned Beneficiaries to Providers: The average change in Savings Rate when the ratio of
-
-
 ### Patient
 
 ```{r}
 renderPlot({
-  
-  # patient %>% head()
   
   mean <- patient %>% filter(term == input$patient_term) %>%
     pull(estimate) %>%
@@ -217,7 +172,18 @@ renderPlot({
 })
 ```
 
+ term == "(Intercept)" ~ "Intercept",
+        term == "perc_Age_65_74" ~ "% Beneficiaries Age 65-74",
+        term == "perc_Age_75_84" ~ "% Beneficiaries Age 75-84",
+        term == "perc_Age_85plus" ~ "% Beneficiaries Age 85 +",
+        term == "perc_male" ~ "% Beneficiaries Male",
+      ),
 
+> **Intercept**: The average savings rate when all other variables are equal to 0. Defaults are: All beneficiaries are 0-64 and female.
+  **% Beneficiaries Age 65-74** : The average change in Savings Rate with a 1% increase in the percentage of Beneficiaries between ages 65-74, holding all other variables constant.
+  **% Beneficiaries Age 75-84** : The average change in Savings Rate with a 1% increase in the percentage of Beneficiaries between ages 75-84, holding all other variables constant.
+  **% Beneficiaries Age 85+** : The average change in Savings Rate with a 1% increase in the percentage of Beneficiaries age 85 and older, holding all other variables constant.
+  **% Specialist Providers** : The average change in Savings Rate with a 1% increase in the percentage of Specialist Providers, holding all other variables constant.
 
 ### Providers
 
@@ -252,5 +218,47 @@ renderPlot({
 })
 ```
 
+> **Intercept**: The average savings rate when all other variables are equal to 0. Defaults are: 0%     PCPs, 0% Specialists, 0 Providers. This value does not have a meaningful interpretation in this   context.
+  **% PCP Providers** : The average change in Savings Rate with a 1% increase in the number of PCP Providers, holding all other variables constant.
+  **% Specialist Providers**: The average change in Savings Rate with a 1% increase in the number of Specialist Providers, holding all other variables constant.
+  **Number of Total Providers**: The average change in Savings Rate when the number of any type of providers increases by 100, holding all other variables constant.
 
-### All
+
+
+### ACO
+
+```{r}
+renderPlot({
+  
+  # patient %>% head()
+  
+  mean <- acos %>% filter(term == input$aco_term) %>%
+    pull(estimate) %>%
+    mean()
+  
+  acos %>%
+    filter(term == input$aco_term) %>%
+    ggplot(aes(x = reorder(replicate,-estimate))) +
+    geom_point(aes(y = estimate, color = estimate > 0)) +
+    geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+    geom_hline(yintercept = mean) +
+    coord_flip() +
+    theme_minimal() +
+    theme(
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid.major.y = element_blank()
+    ) +
+  labs(
+    x = "Savings Rate Estimate",
+    y = "Simulations",
+    subtitle = "Results of 100 Simulations",
+    title = paste("Mean of Estimates of ", input$aco_term, "is ", round(mean, 3))
+  )
+})
+```
+
+> **Intercept**: The average savings rate when all other variables are equal to 0. Defaults are: Age
+  **Initial Starting Year** Terms: The average change in Savings Rate if the starting year was selected, holding all other variables constant.
+  **Ratio of Assigned Beneficiaries to Providers**: The average change in Savings Rate when the ratio of increased by 1 unit, holding all other variables constant.
+

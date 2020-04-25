@@ -109,47 +109,107 @@ saveRDS(aco, file = "shiny/data/aco.RDS")
 
 
 
-# ACO Long ----------------------------------------------------------------
+# Regressions ----------------------------------------------------------------
 
 
-aco_long <- aco %>%
-  pivot_longer(
-    cols = contains(c("N_", "perc_", "ratio_")),
-    names_to = "Names",
-    values_to = "Values",
-    names_prefix = "N_"
-  ) %>%
-  
-  mutate(
-    Category = case_when(
-      str_detect(Names, "perc_Age") ~ "Age (%)",
-      str_detect(Names, "Ben_Age") ~ "Age (n)",
-      str_detect(Names, "Race") ~ "Race",
-      str_detect(Names, "ale") ~ "Sex",
-      Names %in% c("PCP", "Spec", "NP", "PA", "CNS", "total_providers") ~ "Provider Type",
-      Names %in% c("perc_PCP", "perc_Spec") ~ "Provider (%)",
-      Names %in% c("AB", "ratio_AB_to_providers") ~ "Beneficiary"
+acos <- aco %>%
+  rep_sample_n(size = nrow(aco),
+               reps = 100,
+               replace = TRUE) %>%
+  group_by(replicate) %>%
+  nest() %>%
+  mutate(mod = map(
+    data,
+    ~ lm(Sav_rate ~ Initial_Start_Year + ratio_AB_to_providers + current + QualScore,
+         data = .
     )
-  ) %>%
-  
+  ),
+  reg_results = map(mod, ~ tidy(., conf.int = TRUE))) %>%
+  unnest(reg_results) %>%
+  select(-data,-mod) %>%
   mutate(
-    Names = str_replace_all(Names, "_", " "),
-    Names = str_replace(Names, "Ben ", ""),
-    Names = str_replace(Names, "Age ", ""),
-    Names = str_replace(Names, "Race ", ""),
-    Names = str_replace(Names, "perc ", ""),
-    Names = str_replace(Names, "AB", "Assigned Beneficiaries"),
-    Names = str_replace(Names, "PCP", "Primary Care Physicians"),
-    Names = str_replace(Names, "Spec", "Specialists"),
-    Names = str_replace(Names, "NP", "Nurse Practitioners"),
-    Names = str_replace(Names, "PA", "Physician Assistants"),
-    Names = str_replace(Names, "CNS", "Clinical Nurse Specialists"),
-    Names = str_replace(Names, "providers", "Providers")
+    term = case_when(
+      term == "(Intercept)" ~ "Intercept",
+      term == "Initial_Start_Year2013" ~ "Initial Starting Year in 2013",
+      term == "Initial_Start_Year2014" ~ "Initial Starting Year in 2014",
+      term == "Initial_Start_Year2015" ~ "Initial Starting Year in 2015",
+      term == "Initial_Start_Year2016" ~ "Initial Starting Year in 2016",
+      term == "Initial_Start_Year2017" ~ "Initial Starting Year in 2017",
+      term == "Initial_Start_Year2018" ~ "Initial Starting Year in 2018",
+      term == "ratio_AB_to_providers" ~ "Ratio of Assigned Beneficiaries to Providers",
+      term == "currentTrack 1 Plus" ~ "Track 1 Plus",
+      term == "currentTrack 2" ~ "Track 2",
+      term == "currentTrack 3" ~ "Track 3",
+      term == "QualScore" ~ "Data Quality Score"
+    ),
+    term = as.factor(term)
+  )
+
+saveRDS(acos, file = "clean_data/acos_regression.RDS")
+saveRDS(acos, file = "shiny/data/acos_regression.RDS")
+
+
+provider <- aco %>%
+  mutate(N_total_providers = N_total_providers / 100) %>%
+  rep_sample_n(size = nrow(aco),
+               reps = 100,
+               replace = TRUE) %>%
+  group_by(replicate) %>%
+  nest() %>%
+  mutate(mod = map(
+    data,
+    ~ lm(Sav_rate ~ perc_PCP + perc_Spec + N_total_providers,
+         data = .
+    )
+  ),
+  reg_results = map(mod, ~ tidy(., conf.int = TRUE))) %>%
+  unnest(reg_results) %>%
+  select(-data,-mod) %>%
+  mutate(
+    term = case_when(
+      term == "(Intercept)" ~ "Intercept",
+      term == "perc_PCP" ~ "% PCP Providers",
+      term == "perc_Spec" ~ "% Speciality Providers",
+      term == "N_total_providers" ~ "Number of Total Providers"
+    ),
+    term = as.factor(term)
+  )
+
+saveRDS(provider, file = "clean_data/provider_regression.RDS")
+saveRDS(provider, file = "shiny/data/provider_regression.RDS")
+
+
+patient <- aco %>%
+  rep_sample_n(size = nrow(aco),
+               reps = 100,
+               replace = TRUE) %>%
+  group_by(replicate) %>%
+  nest() %>%
+  mutate(mod = map(
+    data,
+    ~ lm(
+      Sav_rate ~ perc_Age_65_74 + perc_Age_75_84 + perc_Age_85plus + perc_male,
+      data = .
+    )
+  ),
+  reg_results = map(mod, ~ tidy(., conf.int = TRUE))) %>%
+  unnest(reg_results) %>%
+  select(-data,-mod) %>%
+  mutate(
+    term = case_when(
+      term == "(Intercept)" ~ "Intercept",
+      term == "perc_Age_65_74" ~ "% Beneficiaries Age 65-74",
+      term == "perc_Age_75_84" ~ "% Beneficiaries Age 75-84",
+      term == "perc_Age_85plus" ~ "% Beneficiaries Age 85 +",
+      term == "perc_male" ~ "% Beneficiaries Male",
+    ),
+    term = as.factor(term)
   )
 
 
-saveRDS(aco_long, file = "clean_data/aco_long.RDS")
-saveRDS(aco_long, file = "shiny/data/aco_long.RDS")
+saveRDS(patient, file = "clean_data/patient_regression.RDS")
+saveRDS(patient, file = "shiny/data/patient_regression.RDS")
+
 
 # County Dataset ----------------------------------------------------------
 
