@@ -17,6 +17,10 @@ library(usmap)
 aco <- readRDS("clean_data/aco.RDS")
 county <- readRDS("clean_data/county.RDS")
 
+acos <- readRDS("clean_data/acos_regression.RDS")
+patient <- readRDS("clean_data/patient_regression.RDS")
+provider <- readRDS("clean_data/provider_regression.RDS")
+
 ```
 
 Intro  {data-orientation=rows}
@@ -266,30 +270,168 @@ renderPlot({
 Regression {data-navmenu="Models"}
 =====================================   
 
+
+Regression {.sidebar}
+-------------------------------------
+
+Here we examine the effects of Patient, Provider, and ACO factors (explanatory variables) on the **Savings Rate** (outcome variable) using a multi-variate linear regression. The results of the 100 simulations of the regression are plotted. Each row represents the estimate with error bars produced by a single simulation.
+
+*Dropdowns only work on corresponding panels*
+
+
+```{r}
+selectInput(inputId = "patient_term",
+            label = "Patient Factors",
+            choices = patient$term,
+            selected = unique(patient$term)[1])
+
+selectInput(inputId = "provider_term",
+            label = "Provider Factors",
+            choices = provider$term,
+            selected = unique(provider$term)[1])
+
+selectInput(inputId = "aco_term",
+            label = "ACO Factors",
+            choices = acos$term,
+            selected = "Intercept") 
+```
+
+
+
 Regression {.tabset}
 -------------------------------------
+
+### Patient
+
+```{r}
+renderPlot({
+  
+  mean <- patient %>% filter(term == input$patient_term) %>%
+    pull(estimate) %>%
+    mean()
+  
+  patient %>%
+    filter(term == input$patient_term) %>%
+    ggplot(aes(x = reorder(replicate,-estimate))) +
+    geom_point(aes(y = estimate, color = estimate > 0)) +
+    geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+    geom_hline(yintercept = mean) +
+    coord_flip() +
+    theme_minimal() +
+    theme(
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid.major.y = element_blank()
+    ) +
+  labs(
+    x = "Savings Rate Estimate",
+    y = "Simulations",
+    subtitle = "Results of 100 Simulations",
+    title = paste("Mean of Estimates of ", input$patient_term, "is ", round(mean, 3))
+  )
+})
+```
+
+
+> **Intercept**: The average savings rate when all other variables are equal to 0. Defaults are: All beneficiaries are 0-64 and female.
+  **% Beneficiaries Age 65-74** : The average change in Savings Rate with a 1% increase in the percentage of Beneficiaries between ages 65-74, holding all other variables constant.
+  **% Beneficiaries Age 75-84** : The average change in Savings Rate with a 1% increase in the percentage of Beneficiaries between ages 75-84, holding all other variables constant.
+  **% Beneficiaries Age 85+** : The average change in Savings Rate with a 1% increase in the percentage of Beneficiaries age 85 and older, holding all other variables constant.
+  **% Specialist Providers** : The average change in Savings Rate with a 1% increase in the percentage of Specialist Providers, holding all other variables constant.
+
+### Providers
+
+```{r}
+renderPlot({
+  
+  # patient %>% head()
+  
+  mean <- provider %>% filter(term == input$provider_term) %>%
+    pull(estimate) %>%
+    mean()
+  
+  provider %>%
+    filter(term == input$provider_term) %>%
+    ggplot(aes(x = reorder(replicate,-estimate))) +
+    geom_point(aes(y = estimate, color = estimate > 0)) +
+    geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+    geom_hline(yintercept = mean) +
+    coord_flip() +
+    theme_minimal() +
+    theme(
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid.major.y = element_blank()
+    ) +
+  labs(
+    x = "Savings Rate Estimate",
+    y = "Simulations",
+    subtitle = "Results of 100 Simulations of Linear Regression",
+    title = paste("Mean of Estimates of ", input$provider_term, "is ", round(mean, 3))
+  )
+})
+```
+
+> **Intercept**: The average savings rate when all other variables are equal to 0. Defaults are: 0%     PCPs, 0% Specialists, 0 Providers. This value does not have a meaningful interpretation in this   context.
+  **% PCP Providers** : The average change in Savings Rate with a 1% increase in the number of PCP Providers, holding all other variables constant.
+  **% Specialist Providers**: The average change in Savings Rate with a 1% increase in the number of Specialist Providers, holding all other variables constant.
+  **Number of Total Providers**: The average change in Savings Rate when the number of any type of providers increases by 100, holding all other variables constant.
+
+
 
 ### ACO
 
 ```{r}
-
+renderPlot({
+  
+  # patient %>% head()
+  
+  mean <- acos %>% filter(term == input$aco_term) %>%
+    pull(estimate) %>%
+    mean()
+  
+  acos %>%
+    filter(term == input$aco_term) %>%
+    ggplot(aes(x = reorder(replicate,-estimate))) +
+    geom_point(aes(y = estimate, color = estimate > 0)) +
+    geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+    geom_hline(yintercept = mean) +
+    coord_flip() +
+    theme_minimal() +
+    theme(
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid.major.y = element_blank()
+    ) +
+  labs(
+    x = "Savings Rate Estimate",
+    y = "Simulations",
+    subtitle = "Results of 100 Simulations",
+    title = paste("Mean of Estimates of ", input$aco_term, "is ", round(mean, 3))
+  )
+})
 ```
 
-### Patient
+> **Intercept**: The average savings rate when all other variables are equal to 0. Defaults are: Initial Starting Year in 2012, ratio of Assigned Beneficiaries to Providers is 0, ACO in Track 1, Quality Score is 0.
+  **Initial Starting Year**: The average change in Savings Rate in the selected starting year compared to the 2012, holding all other variables constant.
+  **Ratio of Assigned Beneficiaries to Providers**: The average change in Savings Rate when the ratio of increased by 1 unit, holding all other variables constant.
+  **Track**: The average change in Savings Rate for ACOs in selected track compared to Track 1, holding all other variables constant.
+  **Quality Score**: The average change in Savings Rate when the Quality Score increases by 1%, holding all other variables constant.
 
 
 
-### Pr
 
 
 Classification {data-navmenu="Models"}
 =====================================   
 
-```{r}
+Classification {.sidebar}
+-------------------------------------
 
-```
+Classification!
 
-
+Classification {.tabset}
+-------------------------------------
 
 
 
@@ -300,7 +442,7 @@ Country {data-navmenu="Maps"}
 Input {.sidebar}
 -------------------------------------
 
-**Maps may take up to 20 seconds to load**
+
 
 ```{r}
 selectInput(inputId = "beneficiary_2",

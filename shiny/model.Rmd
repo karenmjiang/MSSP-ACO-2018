@@ -31,8 +31,7 @@ I hypothesize that 3 factors can help predict the savings rate for an ACO.
   - Ratio of Beneficiaries to Providers
   - Current Track type
   - Quality Score
-  - Number of States
-  
+
 * Patient Factors
   - Ages (% in age categories 0-64, 65-74, 75-84, 85+)
   - Gender (% Male or Female)
@@ -56,14 +55,35 @@ train_ind <- sample(nrow(aco), size = smp_size)
 train <- aco[train_ind, ]
 test <- aco[-train_ind, ]
 
+
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+mode <- getmode(train$GenSaveLoss_categorical)
 ```
+
+> Making sure that the train and test have outcome distributions 
+
+```{r}
+train %>%
+  ggplot(aes(x = GenSaveLoss_categorical)) + geom_bar()
+```
+
+
+```{r}
+test %>%
+  ggplot(aes(x = GenSaveLoss_categorical)) + geom_bar()
+
+```
+
 
   
 ## ACO Factors
   
 ```{r}
-
-# Creating Cart box
+# Creating Cart engine
 
 cart_mod <- decision_tree() %>%
   set_engine("rpart",
@@ -72,14 +92,25 @@ cart_mod <- decision_tree() %>%
 
 # Fitting Cart Model
 
-cart_fit <- function() {
+cart_fit <- 
   fit(
     cart_mod,
-    as.factor(GenSaveLoss_categorical) ~ Initial_Start_Year + ratio_AB_to_providers + current + QualScore + num_states,
+    as.factor(GenSaveLoss_categorical) ~ Initial_Start_Year + ratio_AB_to_providers + current + QualScore,
     data = train
   )
-}
 
+
+iterations <- tibble(reps = 1:10) %>%
+  mutate(cart_fit = map(reps, ~ fit(cart_mod,
+                                    as.factor(GenSaveLoss_categorical) ~ Initial_Start_Year + ratio_AB_to_providers + current + QualScore, 
+                                    data = train)),
+         cart_predict = map(cart_fit, ~ predict(., test)))
+         cart_correct = map(cart_predict, ifelse(. == test$GenSaveLoss_categorical, 1 , 0)),
+         cart_mean = map(cart_correct, ~ mean(.)))
+```
+
+
+```{r}
 # Creating Forest Box
 
 forest_mod <- rand_forest(mtry = 7, trees = 100) %>%
@@ -91,6 +122,7 @@ forest_mod <- rand_forest(mtry = 7, trees = 100) %>%
 forest_fit <- fit(forest_mod,
                     as.factor(GenSaveLoss_categorical) ~ Initial_Start_Year + ratio_AB_to_providers + current + QualScore + num_states,
                     data = train)
+
 
 
 # Pulling Prediction Results
@@ -164,6 +196,15 @@ cart_fit <- fit(cart_mod,
                     data = train)
 
 
+iterations <- tibble(reps = 1:10) %>%
+  mutate(
+    cart_fit = map(reps, ~ fit(cart_mod, 
+                               as.factor(GenSaveLoss_categorical) ~ perc_PCP +
+                                 perc_Spec + N_total_providers, data = train)),
+    cart_predict = map(cart_fit, ~ predict(., test)),
+    cart_accuracy = map(cart_predict, ~ ifelse(. == test$GenSaveLoss_categorical, 1, 0) %>% mean())
+  ) 
+
 
 forest_mod <- rand_forest(mtry = 7, trees = 100) %>%
   set_engine("randomForest") %>%
@@ -233,10 +274,7 @@ results <- bind_rows(aco_factor, patient_factor, provider_factor, all_vars, .id 
   mutate(factors = c("ACO Factors", "Patient Factors", "Provider Factors", "All Factors")) %>%
   pivot_longer(cols = c(cart, forest), names_to = "method", values_to = "prediction")
 
-getmode <- function(v) {
-   uniqv <- unique(v)
-   uniqv[which.max(tabulate(match(v, uniqv)))]
-}
+
 getmode(train$GenSaveLoss_categorical)
 
 mode <- mean(getmode(train$GenSaveLoss_categorical) == predictions$GenSaveLoss_categorical)

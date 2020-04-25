@@ -1,0 +1,30 @@
+---
+title: "Classification"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: paper
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(ggplot2)
+library(infer)
+library(broom)
+library(class)
+
+aco <- readRDS("clean_data/aco.RDS")
+county <- readRDS("clean_data/county.RDS")
+```
+
+```{r}
+smp_size <- floor(0.75 * nrow(aco))
+
+train_ind <- sample(nrow(aco), size = smp_size)
+
+train <- aco[train_ind, ]
+test <- aco[-train_ind, ]
+```
+
