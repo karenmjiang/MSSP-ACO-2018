@@ -267,7 +267,7 @@ renderPlot({
 
 > This metric shows the relative size of the gains or losses, normalized by the benchmark amount. 
 
-Regression {data-navmenu="Models"}
+Models
 =====================================   
 
 
@@ -420,18 +420,6 @@ renderPlot({
 
 
 
-
-
-Classification {data-navmenu="Models"}
-=====================================   
-
-Classification {.sidebar}
--------------------------------------
-
-Classification!
-
-Classification {.tabset}
--------------------------------------
 
 
 
@@ -722,7 +710,7 @@ About
 
 #### My name is Karen Jiang 
 
-I am MPH Candidate in Health Policy with a Decision Science interest at the [**Harvard T. H. Chan School of Public Health**](https://www.hsph.harvard.edu/). I am interested in using data visualization and communication as an advocacy tool to bring to light health disparities and help people make better decisions about health policy.
+I am MPH Candidate in Health Policy with a Decision Science interest at the [**Harvard T. H. Chan School of Public Health**](https://www.hsph.harvard.edu/). I am interested in using data visualization and communication as an advocacy tool to bring to light health disparities and help make better decisions about health policy.
 
 ### Contact Info
 
