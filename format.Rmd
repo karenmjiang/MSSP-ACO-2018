@@ -36,7 +36,7 @@ num_acos <- length(unique(aco$ACO_ID))
 valueBox(num_acos, icon = "fa-hashtag")
 ```
 
-### Number of New ACOs
+### Number of New ACOs in 2018
 
 ```{r value_newaco}
 num_new <- aco %>%
@@ -46,7 +46,7 @@ num_new <- aco %>%
 valueBox(num_new, icon = "fa-user-plus")
 ```
 
-### Total Number of Participating Providers 
+### Total Number of Participating Providers in 2018
 
 ```{r value_numproviders}
 num_providers <- sum(aco$N_total_providers)
@@ -54,7 +54,7 @@ valueBox(prettyNum(num_providers, big.mark = ","),
          icon = "fa-user-md")
 ```
 
-### Total Number of Medicare Beneficiaries 
+### Total Number of Medicare Beneficiaries in 2018
 
 ```{r value_numbeneficiaries}
 num_beneficiaries <- sum(aco$N_AB)
@@ -89,21 +89,28 @@ Kaiser Health News has a 3-minute informative introduction to ACOs:
 
 #### The Problem
 
-There are two main problems facing the US health care system. 
+There are two main problems facing the U.S. health care system. 
 
-1. **Cost**: We spend *significantly* more on healthcare than all other countries
-2. **Quality**: And yet, we've seen a decline in life expectancy for the past 3 years
+1. **Cost**: The U.S. spend *significantly* more on healthcare than all other countries
 
-Medicare traditionally paid providers and hospitals through a **Fee For Service** (FFS) payment system. That is, payments are made to providers and hospitals for each service provided.
+2. **Quality**: but under-performs on multiple indicators of health, including life expectancy, chronic disease burden, and avoidable deaths.
 
-This creates an incentive to prioritize the *quantity* of services over the *quality* of services. As a result, we see duplicative services and poor coordination of care for patients, which ultimately lead to poor outcomes.
+This problem is in part created by the incentives built into the way providers are paid. Medicare traditionally paid providers and hospitals through a **Fee For Service** (FFS) payment system. This creates an incentive to prioritize the *quantity* of services, without creating an incentive to promote higher **quality** of services. As a result, Medicare will pay for duplicate or unnecessary procedures, providers may recommend higher cost procedures over higher value services, and patients must assume responsiblity for coordinating their own care.
 
+#### The Solution (?)
 
+The ACO system tries to change the payment incentives to decrease spending for duplicate or low-value services. 
+
+In this system, Medicare determines a **benchmark** or target amount of spending for an ACO.
+
+* If ACOs spend less than the benchmark, they can split the savings with Medicare, and keep part of the savings.
+* If ACOs spend more than the benchmark, they must pay the difference back to Medicare.
+
+In order to prevent providers from skimping on care, they must also report on quality measures to remain eligible. 
 
 
 ### How do they work?
 
-The following is a very pared down version of how ACOs
 
 #### ACOs are responsible for:
 
@@ -123,7 +130,26 @@ The following is a very pared down version of how ACOs
 
 > For more information, you can read about the full process from CMS's [MSSP Methodology](https://www.cms.gov/Medicare/Medicare-Fee-for-Service-Payment/sharedsavingsprogram/Downloads/Shared-Savings-Losses-Assignment-Spec-V7.pdf)
 
+### This Project
 
+This project aims to see which variables can help us understand whether or not an ACO will generate Savings, Losses, or No Savings / Losses.
+
+We can look at factors related to the ACO, the Patients assigned to the ACO, and the Provider mix in the ACO.
+
+* ACO Factors
+  - Starting Year
+  - Ratio of Beneficiaries to Providers
+  - Current Track type
+  - Quality Score
+
+* Patient Factors
+  - Ages (% in age categories 0-64, 65-74, 75-84, 85+)
+  - Gender (% Male or Female)
+  
+* Provider Factors
+  - % Primary Care Providers
+  - % Specialists
+  - Number of Total Providers
 
 
 Results 
@@ -135,29 +161,32 @@ Inputs {.sidebar}
 Use the filters to see the results of how ACOs fared in 2018.
 
 ```{r}
-selectInput(inputId = "agree",
+checkboxGroupInput(inputId = "agree",
             label = "Agreement Type",
-            choices = aco$Agree_Type,
-            multiple = TRUE,
+            choices = unique(aco$Agree_Type),
+            # multiple = TRUE,
             selected = unique(aco$Agree_Type))
-
-selectInput(inputId = "current",
-            label = "Current Track",
-            choices = aco$current,
-            multiple = TRUE,
-            selected = unique(aco$current))
 
 selectInput(inputId = "initial",
             label = "Initial Starting Year",
-            choices = aco$Initial_Start_Year,
+            choices = unique(aco$Initial_Start_Year),
             multiple = TRUE,
             selected = unique(aco$Initial_Start_Year))
 
-selectInput(inputId = "num_states",
-            label = "Number of States",
-            choices = aco$num_states,
+selectInput(inputId = "current",
+            label = "Current Track",
+            choices = unique(aco$current),
             multiple = TRUE,
-            selected = unique(aco$num_states))
+            selected = unique(aco$current))
+
+sliderInput(inputId = "quality",
+            label = "Quality Score",
+            min = min(aco$QualScore),
+            max = max(aco$QualScore),
+            value = c(min(aco$QualScore), max(aco$QualScore)))
+
+actionButton(inputId = "update",
+             label = "Update")
 ```
 
 
@@ -168,39 +197,72 @@ Column
 
 There are 3 variables we can examine to look at performance results of ACOs in 2018.
 
-- Categories for Generated Savings / Losses (Categorical)
-- Benchmark minus Expenditures (Continuous - absolute measure)
-- Savings Rate (Continuous - relative measure)
+1. Categories of Savings / Losses
+2. Amounts ($) of Savings / Losses
+3. Rates of Savings / Losses
 
 
+**Observations**
 
-### Categories for Generated  Savings / Losses
+* ACOs that stay in the game tend to see greater savings. However, the number of ACOs that still participate in 2018 decreases as you go back to earlier years.
+* Those who are in their renewal agreement (3 year contract) will generally see more savings compared to those in their initial agreement.
+* ACOs in Track 1 do not perform as well as those in other Tracks. This may be confounded by the fact that new ACOs tend to start in Track 1.
+* Higher Quality Scores show better results for ACOs in Tracks 1+, 2, and 3.
+
+### Number of ACOs Selected
+
+```{r}
+renderValueBox ({
+  
+  input$update
+  
+  isolate({ 
+    num <- aco %>%
+    filter(
+        Agree_Type %in% input$agree,
+        current %in% input$current,
+        Initial_Start_Year %in% input$initial,
+        QualScore >= input$quality[1] & QualScore <= input$quality[2]
+      ) %>%
+    nrow()
+    
+    valueBox(num, icon = "fa-hashtag")
+    
+    })
+  
+})
+```
 
 
+### 1. Categories of Savings / Losses
 
 
 ```{r}
 renderPlot({
-  aco %>%
-    filter(
-      Agree_Type %in% input$agree,
-      current %in% input$current,
-      Initial_Start_Year %in% input$initial,
-      num_states %in% input$num_states
-    ) %>%
-    count(GenSaveLoss_categorical) %>%
-    ggplot(aes(x = GenSaveLoss_categorical, y = n)) +
-    geom_col(aes(fill = GenSaveLoss_categorical)) +
-    geom_text(aes(y = n + 10, label = n)) +
-    theme_minimal() +
-    labs(title = "Counts of Generated Savings / Losses Categories",
-         y = "Count") +
-    theme(
-      panel.grid = element_blank(),
-      legend.position = "none",
-      axis.title = element_blank(),
-      axis.text.y = element_blank()
-    )
+  
+  input$update
+  
+  isolate({
+    aco %>%
+      filter(
+        Agree_Type %in% input$agree,
+        current %in% input$current,
+        Initial_Start_Year %in% input$initial,
+        QualScore >= input$quality[1] & QualScore <= input$quality[2]
+      ) %>%
+      count(GenSaveLoss_categorical) %>%
+      ggplot(aes(x = GenSaveLoss_categorical, y = n)) +
+      geom_col(aes(fill = GenSaveLoss_categorical)) +
+      geom_text(aes(y = n + 10, label = n)) +
+      theme_minimal() +
+      theme(
+        panel.grid = element_blank(),
+        legend.position = "none",
+        axis.title = element_blank(),
+        axis.text.y = element_blank()
+      )
+    
+  })
 })
 ```
 
@@ -209,63 +271,73 @@ Column
 -------------------------------------
     
     
-### Benchmark Minus Expenditures
-
+### 2. Amounts ($) of Savings / Losses
 
 ```{r}
 renderPlot({
-  aco %>%
-    filter(
-      Agree_Type %in% input$agree,
-      current %in% input$current,
-      Initial_Start_Year %in% input$initial,
-      num_states %in% input$num_states
-    ) %>%
-    ggplot(aes(x = BnchmkMinExp)) +
-    geom_density(aes(fill = GenSaveLoss_categorical), alpha = 0.4) +
-    geom_density(linetype = "dotted") +
-    theme_minimal() +
-    labs(
-      title = "Amount Generated (Savings / Losses)",
-      x = "$ Amount",
-      y = "Density",
-      fill = "Category"
-    ) +
-    theme(panel.grid = element_blank())
+  
+  input$update
+  
+  isolate({
+    aco %>%
+      filter(
+        Agree_Type %in% input$agree,
+        current %in% input$current,
+        Initial_Start_Year %in% input$initial,
+        QualScore >= input$quality[1] & QualScore <= input$quality[2]
+      ) %>%
+      ggplot(aes(x = BnchmkMinExp)) +
+      geom_density(aes(fill = GenSaveLoss_categorical), alpha = 0.4) +
+      geom_density(linetype = "dotted") +
+      theme_minimal() +
+      labs(x = "$ Amount",
+           y = "Density",
+           fill = "Category") +
+      theme(
+        panel.grid = element_blank(),
+        axis.text.y = element_blank(),
+        legend.position = "bottom"
+      )
+    
+  })
 })
 ```
 
 > **Benchmark** (total amount allotted for all beneficiaries)  minus the **Expenditure** (total amount submitted in claims)
 
-### Savings Rate
-
-**Savings Rate** = Benchmark - Expenditure / Benchmark 
-
+### 3. Rates of Savings / Losses
 
 ```{r}
 renderPlot({
-  aco %>%
-    filter(
-      Agree_Type %in% input$agree,
-      current %in% input$current,
-      Initial_Start_Year %in% input$initial,
-      num_states %in% input$num_states
-    ) %>%
-    ggplot(aes(x = Sav_rate)) +
-    geom_density(aes(fill = GenSaveLoss_categorical), alpha = 0.4) +
-    geom_density(linetype = "dotted") +
-    theme_minimal() +
-    labs(
-      title = "Savings Rate Distribution",
-      x = "Savings Rate",
-      y = "Density",
-      fill = "Category"
-    ) +
-    theme(panel.grid = element_blank())
+  
+  input$update
+  
+  isolate({
+    aco %>%
+      filter(
+        Agree_Type %in% input$agree,
+        current %in% input$current,
+        Initial_Start_Year %in% input$initial,
+        QualScore >= input$quality[1] & QualScore <= input$quality[2]
+      ) %>%
+      ggplot(aes(x = Sav_rate)) +
+      geom_density(aes(fill = GenSaveLoss_categorical), alpha = 0.4) +
+      geom_density(linetype = "dotted") +
+      theme_minimal() +
+      labs(x = "Rates",
+           y = "Density",
+           fill = "Category") +
+      theme(
+        panel.grid = element_blank(),
+        axis.text.y = element_blank(),
+        legend.position = "bottom"
+      )
+    
+  })
 })
 ```
 
-> This metric shows the relative size of the gains or losses, normalized by the benchmark amount. 
+> **Savings Rate** = Benchmark - Expenditure / Benchmark. This metric shows the relative size of the gains or losses, normalized by the benchmark amount. 
 
 Models
 =====================================   
@@ -337,7 +409,7 @@ renderPlot({
   **% Beneficiaries Age 65-74** : The average change in Savings Rate with a 1% increase in the percentage of Beneficiaries between ages 65-74, holding all other variables constant.
   **% Beneficiaries Age 75-84** : The average change in Savings Rate with a 1% increase in the percentage of Beneficiaries between ages 75-84, holding all other variables constant.
   **% Beneficiaries Age 85+** : The average change in Savings Rate with a 1% increase in the percentage of Beneficiaries age 85 and older, holding all other variables constant.
-  **% Specialist Providers** : The average change in Savings Rate with a 1% increase in the percentage of Specialist Providers, holding all other variables constant.
+  **% Beneficiaries Male** : The average change in Savings Rate with a 1% increase in the percentage of male beneficiares, holding all other variables constant.
 
 ### Providers
 
@@ -423,6 +495,158 @@ renderPlot({
 
 
 
+States {data-navmenu="Maps"}
+=====================================   
+
+
+Input {.sidebar}
+-------------------------------------
+
+```{r}
+selectInput(inputId = "state",
+            label = "State",
+            choices = county$state_name)
+
+selectInput(inputId = "beneficiary",
+            label = "Beneficiary Type",
+            choices = county$Beneficiary,
+            selected = "End Stage Renal Disease")
+```
+
+Eligibility groups:
+
+* **End Stage Renal Disease** patients with ESRD can receive Medicare coverage, regardless of age
+* **Disabled** patients with qualifying disabilities can receive Medicare coverage may, regardless of age
+* **Aged Non Dual** patients 65 and older and only enrolled in Medicare
+* **Aged Dual** patients 65 and older and enrolled in both Medicaid and Medicare
+
+```{r}
+selectInput(inputId = "category",
+            label = "Category",
+            choices = county$Category,
+            selected = "Per Capita Expenditures")
+```
+
+
+Output 
+-------------------------------------
+
+### State Maps
+
+```{r}
+renderPlot({
+  d <- county %>%
+    filter(Beneficiary == input$beneficiary,
+           Category == input$category) 
+  
+  plot_usmap(data = d,
+             regions = "counties",
+             include = input$state,
+             values = "Values",
+             color = "white") +
+    # scale_fill_continuous(low = "#DFF0EA", high = "#2A7886") +
+    theme(legend.position = "bottom",
+          legend.direction = "horizontal",
+          legend.text = element_text(angle = 45, 
+                                     hjust = 1, 
+                                     vjust = 1)
+          ) + 
+    labs(
+      title = paste(input$beneficiary, "Beneficiaries in ", input$state),
+      subtitle = paste("by ", input$category),
+      fill = paste(input$category)
+    )
+
+})
+```
+
+> Data is aggregated at a county level. This map is meant to show a distribution of patient characteristics in each state by county.
+
+Summary {data-width=300}
+-------------------------------------
+
+### Beneficiary Summary
+
+```{r}
+
+renderPlot({
+   county %>%
+    group_by(Beneficiary, Category, state_name) %>%
+    summarize(Values = sum(Values, na.rm = TRUE)) %>%
+    filter(state_name == input$state,
+           Category == input$category) %>%
+    ggplot(aes(x = Beneficiary, y = Values)) +
+    geom_col() +
+    theme_minimal() +
+    theme(
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.x = element_blank(),
+      axis.title = element_blank()
+    ) +
+    labs(title = paste(input$category),
+         subtitle = paste("in", input$state, sep = " ")) +
+    coord_flip()
+})
+```
+
+### Average Person Years by State
+
+```{r}
+
+py <- reactive({
+  county %>%
+    filter(state_name == input$state,
+           Category == "Person Years") %>%
+    summarize(Values = mean(Values, na.rm = TRUE)) %>%
+    round(.)
+})
+
+renderValueBox({
+  valueBox(py(), icon = "fa-stopwatch")
+})
+```
+
+
+### Average Per Capita Expenditures by State
+
+```{r}
+
+pce <- reactive({
+  county %>%
+    filter(state_name == input$state,
+           Category == "Per Capita Expenditures") %>%
+    summarize(Values = mean(Values, na.rm = TRUE)) %>%
+    round(.)
+})
+
+renderValueBox({
+
+  valueBox(prettyNum(paste("$", pce()), 
+    big.mark = ","), 
+    icon = "fa-dollar-sign")
+})
+
+```
+
+### Average HCC Risk Score by State
+
+
+```{r}
+
+risk <- reactive({
+  county %>%
+    filter(state_name == input$state,
+           Category == "Average HCC Risk Score") %>%
+    summarize(Values = mean(Values, na.rm = TRUE)) %>%
+    round(., 2)
+})
+
+renderValueBox({
+  valueBox(risk(), icon = "fa-exclamation")
+})
+
+```
+
 Country {data-navmenu="Maps"}
 =====================================   
 
@@ -430,7 +654,7 @@ Country {data-navmenu="Maps"}
 Input {.sidebar}
 -------------------------------------
 
-
+There are 4 groups of beneficiaries that are eligible for Medicare coverage. 
 
 ```{r}
 selectInput(inputId = "beneficiary_2",
@@ -438,10 +662,13 @@ selectInput(inputId = "beneficiary_2",
             choices = county$Beneficiary)
 ```
 
-* **End Stage Renal Disease** may be under 65, provision created by Social Security Act 
-* **Disabled** may be under 65 with qualifying disabilities
-* **Aged Dual** are 65 and older and are enrolled in both Medicaid and Medicare
-* **Aged Non Dual** are 65 and older and only enrolled in Medicare
+Eligibility groups:
+
+* **End Stage Renal Disease** patients with ESRD can receive Medicare coverage, regardless of age
+* **Disabled** patients with qualifying disabilities can receive Medicare coverage may, regardless of age
+* **Aged Non Dual** patients 65 and older and only enrolled in Medicare
+* **Aged Dual** patients 65 and older and enrolled in both Medicaid and Medicare
+
 
 
 Output {.tabset}
@@ -464,8 +691,9 @@ renderPlot({
              color = "white",
              selected = "Aged Non-Dual") +
     scale_fill_continuous(low = "#DFF0EA", high = "#2A7886") +
-    theme(legend.position = "bottom",
-          legend.direction = "horizontal")
+    labs(fill = "Person Years") + 
+    theme(legend.position = "right",
+          legend.direction = "vertical")
   
 })
 
@@ -491,8 +719,9 @@ renderPlot({
              color = "white",
              selected = "Aged Non-Dual") +
     scale_fill_continuous(low = "#DFF0EA", high = "#2A7886") +
-    theme(legend.position = "bottom",
-          legend.direction = "horizontal")
+    labs(fill = "Risk Adjustment Score") + 
+    theme(legend.position = "right",
+          legend.direction = "vertical")
   
 })
 
@@ -502,7 +731,7 @@ renderPlot({
 
 ### Per Capita Expenditures
 
-
+Annualized, truncated, weighted mean total expenditures per beneficiary person year in the county.
 
 ```{r map_expenditure}
 
@@ -517,166 +746,84 @@ renderPlot({
              color = "white",
              selected = "Aged Non-Dual") +
     scale_fill_continuous(low = "#DFF0EA", high = "#2A7886") +
-    theme(legend.position = "bottom",
-          legend.direction = "horizontal")
+    labs(fill = "Per Capita Expenditures ($)") +
+    theme(legend.position = "right",
+          legend.direction = "vertical")
   
 })
 
 ```
 
 
-Summary {data-width=250}
+Summary {data-width=300}
 -------------------------------------
 
-### Beneficiary Summary
+
+### Total Person Years by Beneficiary
 
 ```{r}
-
 renderPlot({
   county %>%
-    group_by(Beneficiary, Category) %>%
+    filter(Category == "Person Years") %>%
+    group_by(Beneficiary) %>%
+    summarise(Values = sum(Values, na.rm = TRUE)) %>%
+    ggplot(aes(x = Beneficiary, y = Values)) +
+    geom_col(aes(fill = Beneficiary), na.rm = TRUE) +
+    theme_minimal() +
+    theme(
+      panel.grid = element_blank(),
+      axis.title = element_blank(),
+      legend.position = "none"
+    ) +
+    coord_flip()
+})  
+```
+
+
+### Average HCC Risk Score by Beneficiary
+
+```{r}
+renderPlot({
+  county %>%
+    filter(Category == "Average HCC Risk Score") %>%
+    group_by(Beneficiary) %>%
     summarize(Values = mean(Values, na.rm = TRUE)) %>%
-    filter(Category == "Per Capita Expenditures") %>%
-    # filter(Category == input$category_2) %>%
     ggplot(aes(x = Beneficiary, y = Values)) +
-    geom_col(aes(width = 0.7)) + 
-    scale_y_continuous(labels = scales::comma) +
-    coord_flip() + 
+    geom_col(aes(fill = Beneficiary)) +
     theme_minimal() +
     theme(
-      axis.title = element_blank()
-    )
+      panel.grid = element_blank(),
+      axis.title = element_blank(),
+      legend.position = "none"
+    ) +
+    coord_flip()
 })
 ```
 
-### Person Year 
 
-```{r value_personyear}
-
-```
-
-
-### Average HCC Risk Score 
-
-```{r value_riskscore}
-
-```
-
-
-### Per Capita Expenditure
-
-```{r value_expenditure}
-
-```
-
-
-
-States {data-navmenu="Maps"}
-=====================================   
-
-
-Input {.sidebar}
--------------------------------------
+### Average Per Capita Expenditures by Beneficiary
 
 ```{r}
-selectInput(inputId = "state",
-            label = "State",
-            choices = county$state_name)
-```
-
-```{r}
-selectInput(inputId = "beneficiary",
-            label = "Beneficiary Type",
-            choices = county$Beneficiary)
-```
-
-* **End Stage Renal Disease** may be under 65, provision created by Social Security Act 
-* **Disabled** may be under 65 with qualifying disabilities
-* **Aged Dual** are 65 and older and are enrolled in both Medicaid and Medicare
-* **Aged Non Dual** are 65 and older and only enrolled in Medicare
-
-```{r}
-selectInput(inputId = "category",
-            label = "Category",
-            choices = county$Category)
-```
-
-
-Output 
--------------------------------------
-
-### State Maps
-
-```{r}
-renderPlot({
-  d <- county %>%
-    filter(Beneficiary == input$beneficiary,
-           Category == input$category) 
-  
-  plot_usmap(data = d,
-             regions = "counties",
-             include = input$state,
-             values = "Values",
-             color = "white") +
-    scale_fill_continuous(low = "#DFF0EA", high = "#2A7886") +
-    theme(legend.position = "bottom",
-          legend.direction = "horizontal") + 
-    labs(
-      title = paste(input$beneficiary, "Beneficiaries in ", input$state),
-      subtitle = paste("by ", input$category),
-      fill = paste("Count of ", input$category)
-    )
-})
-```
-
-> Data is aggregated at a county level. This map is meant to show a distribution of patient characteristics in each state by county.
-
-Summary {data-width=250}
--------------------------------------
-
-### Beneficiary Summary
-
-```{r}
-
 renderPlot({
   county %>%
-    group_by(Beneficiary, Category, State) %>%
-    summarize(Values = sum(Values)) %>%
-    filter(Category == input$category,
-           State == input$state) %>%
+    filter(Category == "Per Capita Expenditures") %>%
+    group_by(Beneficiary) %>%
+    summarize(Values = mean(Values, na.rm = TRUE)) %>%
     ggplot(aes(x = Beneficiary, y = Values)) +
-    geom_col() + 
-    scale_y_continuous(labels = scales::comma) +
-    coord_flip() + 
+    geom_col(aes(fill = Beneficiary)) +
     theme_minimal() +
     theme(
-      axis.title = element_blank()
-    )
+      panel.grid = element_blank(),
+      axis.title = element_blank(),
+      legend.position = "none"
+    ) +
+    coord_flip()
 })
 ```
 
-### Category Summary
-
-```{r}
-renderPlot({
-county %>%
-  group_by(Beneficiary, Category, State) %>%
-  summarize(Values = sum(Values)) %>%
-  filter(Beneficiary == input$beneficiary,
-         State == input$state) %>%
-  ggplot(aes(x = Category, y = Values)) +
-  geom_col() + 
-  scale_y_continuous(labels = scales::comma) +
-  coord_flip() + 
-  theme_minimal() +
-  theme(
-    axis.title = element_blank()
-  )})
-```
 
 About 
 ===================================== 
-
 
 
 Data Sources {data-width=750}
@@ -710,7 +857,7 @@ About
 
 #### My name is Karen Jiang 
 
-I am MPH Candidate in Health Policy with a Decision Science interest at the [**Harvard T. H. Chan School of Public Health**](https://www.hsph.harvard.edu/). I am interested in using data visualization and communication as an advocacy tool to bring to light health disparities and help make better decisions about health policy.
+I am MPH Candidate in Health Policy at the [**Harvard T. H. Chan School of Public Health**](https://www.hsph.harvard.edu/). I am interested in using data visualization and communication as an advocacy tool to bring to light health disparities and help make better decisions about health policy.
 
 ### Contact Info
 
